@@ -129,6 +129,8 @@ class Task:
         __eq__: Equality comparison handler that compares tasks by name.   
     """
     name: str
+    code_path: str
+    config_path: str
     nuclio_endpoint: str
     fusionizer_endpoint: str
 
