@@ -1,5 +1,5 @@
-from fastapi import Body, FastAPI, Form, UploadFile, File
 import uvicorn
+from fastapi import Body, FastAPI, Form, UploadFile, File
 from typing import Annotated
 from pydantic import BaseModel
 
@@ -44,7 +44,7 @@ class ApiServer:
             # TODO add logic to get resource information
             return {"status": "success", "function_name": function_name}
 
-        @self.app.put("/invoke/{function_name}")
+        @self.app.post("/invoke/{function_name}")
         async def invoke(function_name: str):
             # TODO add logic to invoke a function
             return {"status": "success", "function_name": function_name}

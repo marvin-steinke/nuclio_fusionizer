@@ -1,6 +1,6 @@
+import json
 from dataclasses import dataclass, field, asdict
 from copy import deepcopy
-import json
 
 
 @dataclass
@@ -112,7 +112,7 @@ class Mapper:
         return [task for group in self._fusion_setup for task in group.tasks]
 
     def get(self) -> list[FusionGroup]:
-        """Returns a deep copy of the fusion setup. 
+        """Returns a deep copy of the fusion setup.
 
         Returns:
             Deepcopy of the fusion setup.
