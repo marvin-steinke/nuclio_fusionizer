@@ -4,6 +4,79 @@ import json
 
 
 @dataclass
+class Task:
+    """Class representing a single task.
+
+    Attributes:
+        name: Name of the task.
+        code_path: Path of the source code file.
+        config_path: Path of the configuration file.
+        nuclio_endpoint: Connection endpoint of the task.
+        fusionizer_endpoint: Connection endpoint of the fusionizer.
+
+    Methods:
+        __eq__: Equality comparison handler that compares tasks by name.
+    """
+    name: str
+    code_path: str
+    config_path: str
+    nuclio_endpoint: str
+    fusionizer_endpoint: str
+
+    def __eq__(self, other) -> bool:
+        """Equality comparison method that compares tasks by name.
+
+        Args:
+            other: Other object to compare with.
+
+        Returns:
+            True if other is a Task and has the same name, False otherwise.
+        """
+        if not isinstance(other, Task):
+            return NotImplemented
+        return self.name == other.name
+
+
+@dataclass
+class FusionGroup:
+    """Class representing a group of tasks that get fused together.
+
+    Attributes:
+        nuclio_endpoint: Connection endpoint for the fusion.
+        tasks: A list of tasks included in the fusion.
+
+    Methods:
+        to_json: Converts the object into a JSON string.
+        __eq__: Equality comparison handler that compares tasks as sets.
+    """
+    nuclio_endpoint: str
+    tasks: list[Task] = field(default_factory=list)
+
+    def to_json(self) -> str:
+        """Converts the class instance into a JSON string.
+
+        Returns:
+           JSON string of the class instance.
+        """
+        # Convert to JSON, handling nested Task objects
+        return json.dumps(asdict(self), default=lambda o: o.__dict__)
+
+    def __eq__(self, other) -> bool:
+        """Equality comparison method that compares tasks as sets.
+
+        Args:
+            other: Other object to compare with.
+
+        Returns:
+            True if other is a FusionGroup and has the same tasks, False otherwise.
+        """
+        if not isinstance(other, FusionGroup):
+            return NotImplemented
+        # Compare tasks as sets
+        return set(self.tasks) == set(other.tasks)
+
+
+@dataclass
 class Mapper:
     """Singleton class that handles the management of fusion groups.
 
@@ -20,14 +93,14 @@ class Mapper:
     _instance = None
     _fusion_setup: list[FusionGroup] = field(default_factory=list)
 
-    def __new__(cls) -> Mapper:
+    def __new__(cls) -> 'Mapper':
         """Singleton implementation, handles the creation of the class instance.
     
         Returns:
             Same instance if it's already been created else it creates a new one.
         """
         if cls._instance is None:
-            cls._instance = super(Matter, cls).__new__(cls)
+            cls._instance = super(Mapper, cls).__new__(cls)
         return cls._instance
 
     def tasks(self) -> list[Task]:
@@ -75,72 +148,3 @@ class Mapper:
             if task in group.tasks:
                 return group
         return None
-
-
-@dataclass
-class FusionGroup:
-    """Class representing a group of tasks that get fused together.
-    
-    Attributes:
-        nuclio_endpoint: Connection endpoint for the fusion.
-        tasks: A list of tasks included in the fusion.
-        
-    Methods:
-        to_json: Converts the object into a JSON string.
-        __eq__: Equality comparison handler that compares tasks as sets.
-    """
-    nuclio_endpoint: str
-    tasks: list[Task] = field(default_factory=list)
-
-    def to_json(self) -> str:
-        """Converts the class instance into a JSON string.
-
-        Returns:
-           JSON string of the class instance.
-        """
-        # Convert to JSON, handling nested Task objects
-        return json.dumps(asdict(self), default=lambda o: o.__dict__)
-
-    def __eq__(self, other) -> Bool:
-        """Equality comparison method that compares tasks as sets.
-
-        Args:
-            other: Other object to compare with.
-
-        Returns:
-            True if other is a FusionGroup and has the same tasks, False otherwise.
-        """
-        if not isinstance(other, FusionGroup):
-            return NotImplemented
-        # Compare tasks as sets
-        return set(self.tasks) == set(other.tasks)
-
-
-@dataclass
-class Task:
-    """Class representing a single task.
-
-    Attributes:
-        name: Name of the task.
-        nuclio_endpoint: Connection endpoint of the task.
-        fusionizer_endpoint: Connection endpoint of the fusionizer.
-        
-    Methods:
-        __eq__: Equality comparison handler that compares tasks by name.   
-    """
-    name: str
-    nuclio_endpoint: str
-    fusionizer_endpoint: str
-
-    def __eq__(self, other) -> Bool:
-        """Equality comparison method that compares tasks by name.
-
-        Args:
-            other: Other object to compare with.
-
-        Returns:
-            True if other is a Task and has the same name, False otherwise.
-        """
-        if not isinstance(other, Task):
-            return NotImplemented
-        return self.name == other.name
