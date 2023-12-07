@@ -27,7 +27,7 @@ class Mapper:
             Same instance if it's already been created else it creates a new one.
         """
         if cls._instance is None:
-            cls._instance = super(Matter, cls).__new__(cls)
+            cls._instance = super(Mapper, cls).__new__(cls)
         return cls._instance
 
     def tasks(self) -> list[Task]:
