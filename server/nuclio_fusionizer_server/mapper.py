@@ -17,11 +17,8 @@ class Task:
         __eq__: Equality comparison handler that compares tasks by name.   
     """
     name: str
-    code_path: str
     dir_path: str
-    config_path: str
     nuclio_endpoint: str
-    fusionizer_endpoint: str
 
     def __eq__(self, other) -> bool:
         """Equality comparison method that compares tasks by name.
