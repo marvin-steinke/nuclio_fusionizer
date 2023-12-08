@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field, asdict
 from copy import deepcopy
+from typing import Union
 import json
 
 
@@ -135,7 +136,7 @@ class Mapper:
         # assume the nuclio_endpoints are conserved by caller
         self._fusion_setup = new_setup
 
-    def get_group(self, task: Task) -> FusionGroup:
+    def get_group(self, task: Task) -> Union[FusionGroup, None]:
         """Returns the group in which the task is present.
 
         Args:
