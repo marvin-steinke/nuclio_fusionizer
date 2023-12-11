@@ -61,6 +61,30 @@ class FusionGroup:
         # Convert to JSON, handling nested Task objects
         return json.dumps(asdict(self), default=lambda o: o.__dict__)
 
+    @classmethod
+    def from_json(cls, group_data: dict) -> 'FusionGroup':
+        """Create a FusionGroup instance from JSON data.
+
+        Args:
+            group_data: Dictionary containing fusion group configuration.
+
+        Returns:
+            FusionGroup instance.
+        """
+        nuclio_endpoint = group_data["nuclio_endpoint"]
+        tasks_data = group_data.get("tasks", [])
+        tasks = [
+            Task(
+                name=task_data["name"],
+                code_path=task_data["code_path"],
+                config_path=task_data["config_path"],
+                nuclio_endpoint=task_data["nuclio_endpoint"],
+                fusionizer_endpoint=task_data["fusionizer_endpoint"],
+            )
+            for task_data in tasks_data
+        ]
+        return cls(nuclio_endpoint=nuclio_endpoint, tasks=tasks)
+
     def __eq__(self, other) -> bool:
         """Equality comparison method that compares tasks as sets.
 
@@ -103,6 +127,24 @@ class Mapper:
             cls._instance = super(Mapper, cls).__new__(cls)
         return cls._instance
 
+    @classmethod
+    def parse_fusion_groups_from_json(cls, json_path: str) -> list[FusionGroup]:
+        """Parse fusion groups from a JSON file.
+
+        Args:
+            json_path: Path to the JSON file containing fusion group configurations.
+
+        Returns:
+            List of FusionGroups parsed from the JSON file.
+        """
+        with open(json_path, 'r') as json_file:
+            fusion_groups_config = json.load(json_file)
+
+        fusion_groups = [FusionGroup.from_json(group_data) for group_data in
+                         fusion_groups_config]
+
+        return fusion_groups
+
     def tasks(self) -> list[Task]:
         """Return all tasks in the fusion setup.
 
@@ -135,7 +177,7 @@ class Mapper:
         # assume the nuclio_endpoints are conserved by caller
         self._fusion_setup = new_setup
 
-    def get_group(self, task: Task) -> FusionGroup:
+    def get_group(self, task: Task) -> FusionGroup | None:
         """Returns the group in which the task is present.
 
         Args:

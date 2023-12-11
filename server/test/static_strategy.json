@@ -4,18 +4,10 @@
       "nuclio_endpoint": "group1_endpoint",
       "tasks": [
         {
-          "name": "Task1",
-          "code_path": "/path/to/code1.py",
-          "config_path": "/path/to/config1.json",
-          "nuclio_endpoint": "task1_endpoint",
-          "fusionizer_endpoint": "fusionizer1_endpoint"
+          "name": "Task1"
         },
         {
-          "name": "Task2",
-          "code_path": "/path/to/code2.py",
-          "config_path": "/path/to/config2.json",
-          "nuclio_endpoint": "task2_endpoint",
-          "fusionizer_endpoint": "fusionizer2_endpoint"
+          "name": "Task2"
         }
       ]
     },
@@ -23,11 +15,7 @@
       "nuclio_endpoint": "group2_endpoint",
       "tasks": [
         {
-          "name": "Task3",
-          "code_path": "/path/to/code3.py",
-          "config_path": "/path/to/config3.json",
-          "nuclio_endpoint": "task3_endpoint",
-          "fusionizer_endpoint": "fusionizer3_endpoint"
+          "name": "Task3"
         }
       ]
     },
@@ -35,11 +23,7 @@
       "nuclio_endpoint": "group3_endpoint",
       "tasks": [
         {
-          "name": "Task4",
-          "code_path": "/path/to/code4.py",
-          "config_path": "/path/to/config4.json",
-          "nuclio_endpoint": "task4_endpoint",
-          "fusionizer_endpoint": "fusionizer4_endpoint"
+          "name": "Task4"
         }
       ]
     },
@@ -47,11 +31,7 @@
       "nuclio_endpoint": "group4_endpoint",
       "tasks": [
         {
-          "name": "Task5",
-          "code_path": "/path/to/code5.py",
-          "config_path": "/path/to/config5.json",
-          "nuclio_endpoint": "task5_endpoint",
-          "fusionizer_endpoint": "fusionizer5_endpoint"
+          "name": "Task5"
         }
       ]
     }
