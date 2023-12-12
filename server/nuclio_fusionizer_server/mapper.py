@@ -9,19 +9,55 @@ class Task:
 
     Attributes:
         name: Name of the task.
-        code_path: Path of the source code file.
-        config_path: Path of the configuration file.
+        dir_path: The path to the directory containing the tasks files.
         nuclio_endpoint: Connection endpoint of the task.
-        fusionizer_endpoint: Connection endpoint of the fusionizer.
 
     Methods:
         __eq__: Equality comparison handler that compares tasks by name.
     """
     name: str
-    code_path: str
-    config_path: str
+    dir_path: str
     nuclio_endpoint: str
-    fusionizer_endpoint: str
+
+    def __init__(self, name: str = None, dir_path: str = None,
+                 nuclio_endpoint: str = None, json_data: dict = None) -> None:
+        """Initialize Task.
+
+        name, dir_path, and nuclio_endpoint should be provided;
+        either as parameters or as JSON data.
+
+        Args:
+            name: Name of the task.
+            dir_path: Path of the source code file.
+            nuclio_endpoint: Connection endpoint of the task.
+            json_data: Optional JSON data for initialization.
+        """
+
+        required_params = ["name", "dir_path", "nuclio_endpoint"]
+
+        if json_data:
+            missing_params = [param for param in required_params if
+                              param not in json_data]
+
+            if missing_params:
+                raise ValueError(
+                    f"Missing required parameter(s) in JSON data: "
+                    f"{', '.join(missing_params)}")
+
+            self.name = json_data.get("name", "")
+            self.dir_path = json_data.get("dir_path", "")
+            self.nuclio_endpoint = json_data.get("nuclio_endpoint", "")
+        else:
+            missing_params = [param for param in required_params if
+                              locals()[param] is None]
+
+            if missing_params:
+                raise ValueError(
+                    f"Missing required parameter(s): {', '.join(missing_params)}")
+
+            self.name = name
+            self.dir_path = dir_path
+            self.nuclio_endpoint = nuclio_endpoint
 
     def __eq__(self, other) -> bool:
         """Equality comparison method that compares tasks by name.
@@ -43,6 +79,7 @@ class FusionGroup:
 
     Attributes:
         nuclio_endpoint: Connection endpoint for the fusion.
+        build_dir: The path to the directory containing the build files.
         tasks: A list of tasks included in the fusion.
 
     Methods:
@@ -50,7 +87,50 @@ class FusionGroup:
         __eq__: Equality comparison handler that compares tasks as sets.
     """
     nuclio_endpoint: str
+    build_dir: str
     tasks: list[Task] = field(default_factory=list)
+
+    def __init__(self, nuclio_endpoint: str = None, build_dir: str = None,
+                 tasks=None, json_data=None) -> None:
+        """Initialize FusionGroup.
+
+        nuclio_endpoint and build_dir should be provided;
+        either as parameters or as JSON data.
+
+        Args:
+            nuclio_endpoint: Connection endpoint for the fusion.
+            build_dir: The path to the directory containing the build files.
+            json_data: Optional JSON data for initialization.
+        """
+
+        required_params = ["nuclio_endpoint", "build_dir"]
+
+        if json_data:
+            missing_params = [param for param in required_params if
+                              param not in json_data]
+
+            if missing_params:
+                raise ValueError(
+                    f"Missing required parameter(s) in JSON data: "
+                    f"{', '.join(missing_params)}")
+
+            self.nuclio_endpoint = json_data.get("nuclio_endpoint", "")
+            self.build_dir = json_data.get("build_dir", "")
+            tasks_data = json_data.get("tasks", [])
+            self.tasks = [Task(task_data) for task_data in tasks_data]
+        else:
+            missing_params = [param for param in required_params if
+                              locals()[param] is None]
+
+            if missing_params:
+                raise ValueError(
+                    f"Missing required parameter(s): {', '.join(missing_params)}")
+            if tasks is None:
+                tasks = field(default_factory=list)
+
+            self.nuclio_endpoint = nuclio_endpoint
+            self.build_dir = build_dir
+            self.tasks = tasks
 
     def to_json(self) -> str:
         """Converts the class instance into a JSON string.
@@ -60,30 +140,6 @@ class FusionGroup:
         """
         # Convert to JSON, handling nested Task objects
         return json.dumps(asdict(self), default=lambda o: o.__dict__)
-
-    @classmethod
-    def from_json(cls, group_data: dict) -> 'FusionGroup':
-        """Create a FusionGroup instance from JSON data.
-
-        Args:
-            group_data: Dictionary containing fusion group configuration.
-
-        Returns:
-            FusionGroup instance.
-        """
-        nuclio_endpoint = group_data["nuclio_endpoint"]
-        tasks_data = group_data.get("tasks", [])
-        tasks = [
-            Task(
-                name=task_data["name"],
-                code_path=task_data["code_path"],
-                config_path=task_data["config_path"],
-                nuclio_endpoint=task_data["nuclio_endpoint"],
-                fusionizer_endpoint=task_data["fusionizer_endpoint"],
-            )
-            for task_data in tasks_data
-        ]
-        return cls(nuclio_endpoint=nuclio_endpoint, tasks=tasks)
 
     def __eq__(self, other) -> bool:
         """Equality comparison method that compares tasks as sets.
@@ -126,24 +182,6 @@ class Mapper:
         if cls._instance is None:
             cls._instance = super(Mapper, cls).__new__(cls)
         return cls._instance
-
-    @classmethod
-    def parse_fusion_groups_from_json(cls, json_path: str) -> list[FusionGroup]:
-        """Parse fusion groups from a JSON file.
-
-        Args:
-            json_path: Path to the JSON file containing fusion group configurations.
-
-        Returns:
-            List of FusionGroups parsed from the JSON file.
-        """
-        with open(json_path, 'r') as json_file:
-            fusion_groups_config = json.load(json_file)
-
-        fusion_groups = [FusionGroup.from_json(group_data) for group_data in
-                         fusion_groups_config]
-
-        return fusion_groups
 
     def tasks(self) -> list[Task]:
         """Return all tasks in the fusion setup.

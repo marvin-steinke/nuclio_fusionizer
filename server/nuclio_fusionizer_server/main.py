@@ -16,8 +16,9 @@ def main() -> FastAPI:
 
     mapper = Mapper()
 
-    optimizer = Optimizer(api_server, mapper, StaticStrategy)
-
+    optimizer = Optimizer(api_server, mapper)
+    optimizer.start()
+    
     return api_server.app
 
 

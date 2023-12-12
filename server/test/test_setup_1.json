@@ -2,56 +2,51 @@
   [
     {
       "nuclio_endpoint": "group1_endpoint",
+      "build_dir": "/path/to/dir1.py",
       "tasks": [
         {
           "name": "Task1",
-          "code_path": "/path/to/code1.py",
-          "config_path": "/path/to/config1.json",
-          "nuclio_endpoint": "task1_endpoint",
-          "fusionizer_endpoint": "fusionizer1_endpoint"
+          "dir_path": "/path/to/code1.py",
+          "nuclio_endpoint": "task1_endpoint"
         },
         {
           "name": "Task2",
-          "code_path": "/path/to/code2.py",
-          "config_path": "/path/to/config2.json",
-          "nuclio_endpoint": "task2_endpoint",
-          "fusionizer_endpoint": "fusionizer2_endpoint"
+          "dir_path": "/path/to/code2.py",
+          "nuclio_endpoint": "task2_endpoint"
         }
       ]
     },
     {
       "nuclio_endpoint": "group2_endpoint",
+      "build_dir": "/path/to/dir2.py",
+
       "tasks": [
         {
           "name": "Task3",
-          "code_path": "/path/to/code3.py",
-          "config_path": "/path/to/config3.json",
-          "nuclio_endpoint": "task3_endpoint",
-          "fusionizer_endpoint": "fusionizer3_endpoint"
+          "dir_path": "/path/to/code3.py",
+          "nuclio_endpoint": "task3_endpoint"
         }
       ]
     },
     {
       "nuclio_endpoint": "group3_endpoint",
+      "build_dir": "/path/to/dir3.py",
       "tasks": [
         {
           "name": "Task4",
-          "code_path": "/path/to/code4.py",
-          "config_path": "/path/to/config4.json",
-          "nuclio_endpoint": "task4_endpoint",
-          "fusionizer_endpoint": "fusionizer4_endpoint"
+          "dir_path": "/path/to/code4.py",
+          "nuclio_endpoint": "task4_endpoint"
         }
       ]
     },
     {
       "nuclio_endpoint": "group4_endpoint",
+      "build_dir": "/path/to/dir4.py",
       "tasks": [
         {
           "name": "Task5",
-          "code_path": "/path/to/code5.py",
-          "config_path": "/path/to/config5.json",
-          "nuclio_endpoint": "task5_endpoint",
-          "fusionizer_endpoint": "fusionizer5_endpoint"
+          "dir_path": "/path/to/code5.py",
+          "nuclio_endpoint": "task5_endpoint"
         }
       ]
     }
