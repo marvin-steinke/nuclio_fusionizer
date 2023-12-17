@@ -1,8 +1,9 @@
 from typing import Callable, Any
 from urllib3.util.retry import Retry as Retry
-from urllib.parse import urljoin
+from urllib.parse import urlparse
 from requests.adapters import HTTPAdapter
-from requests.models import Response
+from requests.models import Response, PreparedRequest
+import json
 import requests
 import os
 
@@ -23,10 +24,11 @@ class FusionizerAdapter(HTTPAdapter):
             be an integer, Retry object, or None. Defaults to 0.
         pool_block: Whether the connection pool should block when no free
             connections are available. Defaults to False.
-    
+
     Methods:
         send: Sends a prepared request and returns the response.
     """
+
     def __init__(
         self,
         tasks: dict[str, Callable],
@@ -40,29 +42,65 @@ class FusionizerAdapter(HTTPAdapter):
         self.tasks = tasks
         self.fusionizer_url = fusionizer_url
 
-    def send(self, request, **kwargs):
-        """Sends a prepared request and returns the response.
+    def send(self, request: PreparedRequest, **kwargs):
+        """Sends a PreparedRequest.
 
-        Check if the request URL starts with the fusionizer invocation url, if
-        it does, then it returns the call to the specified local handler,
-        otherwise, it sends the request through the parent class's send method.
+        If the PreparedRequest object is for one of the tasks handled by this
+        adapter, the task is invoked locally and the result is returned as a
+        Response. Otherwise, the PreparedRequest is handled as a regular
+        request.
 
         Args:
-            request: The Request object to send.
-            **kwargs: Optional arguments that request takes.
-        
+            request: The PreparedRequest object to be sent. If the object is for
+                one of the tasks handled by this adapter, the URL must point to the
+                adapter's fusionizer server, and the body must be a JSON-compliant
+                string that can be loaded as kwargs for the task.
+            **kwargs: (optional) Keyword arguments to be used in the regular
+                *request (if the PreparedRequest is not for
+                one of the tasks handled by this adapter).
+
         Returns:
-            Response object.
+            The Response to the request. If the PreparedRequest was for one of
+            the tasks handled by this adapter, the content of the Response is
+            the result of the task invocation, and the status code is 200. If
+            the body of the PreparedRequest was not JSON-compliant, the content
+            is 'Invalid JSON format' and the status code is 400.  Otherwise, the
+            Response is the result of handling the PreparedRequest as a regular
+            request.
+
+        Raises:
+            ValueError: If the PreparedRequest object does not have an URL, or
+                if it is for one of the tasks handled by this adapter and does not
+                have a body.
         """
-        invoke_url = urljoin(self.fusionizer_url, "/invoke/")
-        if request.url.startswith(invoke_url):
+        if not request.url:
+            raise ValueError("PreparedRequest object is missing url.")
+        subaddrs = urlparse(request.url).path.strip("/")
+        if (
+            # If the base url is our fusionizer server
+            request.url.startswith(self.fusionizer_url)
+            # and is only called with one subaddr (=function)
+            and subaddrs
+            and "/" not in subaddrs
+            # and the function is in this Fusion Group
+            and subaddrs in self.tasks
+        ):  # -> invoke locally
+            if not request.body:
+                raise ValueError("PreparedRequest object is missing body.")
             response = Response()
-            response.status_code = 200
-            # TODO return local function
-            # maybe this is more complicated as we call the function via the
-            # invoke fastpi access point
-            response._content = b"Static response for specific URL"
+            # Check if body is json
+            try:
+                kwargs = json.loads(request.body)
+                content = self.tasks[subaddrs](**kwargs).encode("utf-8")
+                status_code = 200
+            except ValueError:
+                status_code = 400
+                content = b"Invalid JSON format"
+
+            response.status_code = status_code
+            response._content = content
             return response
+        # If not, hanlde as a regular request
         return super(FusionizerAdapter, self).send(request, **kwargs)
 
 
@@ -80,7 +118,7 @@ class Dispatcher:
         Fusionizer server address, and replaces the requests' default session
         with a custom session that utilizes this adapter. The adapter globaly
         mounts to all http and https addresses.
-        
+
         Raises:
             ValueError: If no value for the 'Fusionizer-Server-Address' field
                 was provided in the header.
@@ -103,14 +141,14 @@ class Dispatcher:
 
     def _choose_handler(self) -> Callable:
         """Selects the right task handler based on the 'Task-Name' field.
-        
+
         This method retrieves the task name from the event header and checks if
         such a task exists in the tasks dictionary. If it does, it returns the
         corresponding task handler function.
 
         Returns:
             The chosen task handler function.
-            
+
         Raises:
             ValueError: If no value for the 'Task-Name' field was provided in
                 the header.
