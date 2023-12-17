@@ -37,8 +37,8 @@ class Fuser:
         configurations of multiple tasks into a single deployment.
 
         Args:
-            tasks (list[Task]): A list of Task objects to be merged.
-            output_file (str): The path to the output YAML file.
+            tasks: A list of Task objects to be merged.
+            output_file: The path to the output YAML file.
         """
         merged_data = {}
 
@@ -66,7 +66,7 @@ class Fuser:
         appropriate task based on the configuration of the FusionGroup.
 
         Args:
-            group (FusionGroup): The group of tasks to create a dispatcher for.
+            group: The group of tasks to create a dispatcher for.
         """
         # Dictionary to hold import statements for each task
         import_dict = {}
@@ -102,7 +102,7 @@ def handler(context, event):
         script.
 
         Args:
-            group (FusionGroup): The group of tasks to be fused.
+            group: The group of tasks to be fused.
         """
         group = deepcopy(group)
         # New build dir for group
