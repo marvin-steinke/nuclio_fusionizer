@@ -1,5 +1,6 @@
 from loguru import logger
 from copy import deepcopy
+from importlib.resources import files
 import os
 import shutil
 import yaml
@@ -13,7 +14,7 @@ class Fuser:
     This class is responsible for combining multiple tasks into a single
     deployment package. It creates a build directory, merges configuration files,
     and generates a dispatcher script.
-    
+
     Methods:
         _merge_yaml_files: Merges YAML configurations of tasks into a single file.
         _create_dispatcher: Creates a dispatcher script for the fused tasks.
@@ -26,9 +27,9 @@ class Fuser:
             os.makedirs(self.build_dir)
 
     def _merge_yaml_files(
-        self, 
+        self,
         tasks: list[Task],
-        output_file: str, 
+        output_file: str,
     ) -> None:
         """Merges multiple YAML configuration files into a single file.
 
@@ -56,17 +57,18 @@ class Fuser:
         merged_data["spec"]["description"] = f"Fusion Group of tasks {task_names}"
 
         # Write the merged data to the output file
-        with open(output_file, 'w') as file:
+        with open(output_file, "w") as file:
             yaml.dump(merged_data, file)
 
-    def _create_dispatcher(self, group: FusionGroup) -> None:
-        """Creates a dispatcher script for the fused tasks.
+    def _create_handler(self, group: FusionGroup, group_build_path: str) -> None:
+        """Creates a handler script for the fused tasks.
 
         Generates a Python script that imports and dispatches requests to the
         appropriate task based on the configuration of the FusionGroup.
 
         Args:
-            group: The group of tasks to create a dispatcher for.
+            group: The group of tasks to create a handler for.
+            group_build_path: The build path for the Fusion Group.
         """
         # Dictionary to hold import statements for each task
         import_dict = {}
@@ -77,28 +79,36 @@ class Fuser:
                 data = yaml.safe_load(file)
                 handler = data["handler"].split(":")
                 # Create and store the import statement for this task
-                import_dict[task] = f"from .{task.name}.{handler[0]} import {handler[1]}"
+                import_str = (
+                    f"from .{task.name}.{handler[0]} import {handler[1]} as {task.name}"
+                )
+                import_dict[task] = import_str
 
         # Combine all import statements into a single string
-        import_statements = '\n'.join(import_dict.values())
-        # Create dispatcher script with import statements and handler function
-        # TODO add dispatcher logic
-        dispatcher_str = f"""
+        import_statements = "\n".join(import_dict.values())
+        task_dict_str = ", ".join(
+            [f"'{task.name}': {task.name}" for task in group.tasks]
+        )
+        # Create handler script with import statements and handler function
+        handler_str = f"""
 {import_statements}
+from .dispatcher import Dispatcher
 
 def handler(context, event):
-    pass
+    tasks = {{{task_dict_str}}}
+    dispatcher = Dispatcher(tasks, context, event)
+    dispatcher.run()
 """
 
-        # Write dispatcher script to a file
-        with open("dispatcher.py", "w") as file:
-            file.write(dispatcher_str)
+        # Write handler script to a file
+        with open(os.path.join(group_build_path, "handler.py"), "w") as file:
+            file.write(handler_str)
 
     def fuse(self, group: FusionGroup) -> None:
         """Performs the fusion process for a given group of tasks.
 
         This method takes a FusionGroup, prepares a new build directory for it,
-        copies task files, merges their configurations, and creates a dispatcher
+        copies task files, merges their configurations, and creates a handler
         script.
 
         Args:
@@ -106,7 +116,7 @@ def handler(context, event):
         """
         group = deepcopy(group)
         # New build dir for group
-        group_name = ''.join([task.name for task in group.tasks])
+        group_name = "".join([task.name for task in group.tasks])
         group_build_path = os.path.join(self.build_dir, group_name)
         if os.path.exists(group_build_path):
             shutil.rmtree(group_build_path)
@@ -114,8 +124,9 @@ def handler(context, event):
 
         # Copy all tasks to build dir
         for task in group.tasks:
-            task.dir_path = os.path.join(group_build_path, task.name)
-            shutil.copytree(task.dir_path, task.dir_path)
+            new_dir_path = os.path.join(group_build_path, task.name)
+            shutil.copytree(task.dir_path, new_dir_path)
+            task.dir_path = new_dir_path
 
         # Merge all YAML files of tasks
         self._merge_yaml_files(
@@ -123,4 +134,17 @@ def handler(context, event):
             os.path.join(group_build_path, "function.yaml"),
         )
 
-        self._create_dispatcher(group)
+        # Copy dispatcher.py lib to build dir
+        shutil.copy(
+            str(files("nuclio_fusionizer_server").joinpath("dispatcher.py")),
+            group_build_path,
+        )
+
+        # Create __init__.py
+        with open(os.path.join(group_build_path, "__init__.py"), "w"):
+            pass
+
+        self._create_handler(group, group_build_path)
+
+        task_list_str = ", ".join([task.name for task in group.tasks])
+        logger.info(f"Successfully fused Tasks: {task_list_str}")
