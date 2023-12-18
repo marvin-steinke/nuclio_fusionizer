@@ -19,7 +19,6 @@
     {
       "nuclio_endpoint": "group2_endpoint",
       "build_dir": "/path/to/dir2.py",
-
       "tasks": [
         {
           "name": "Task3",

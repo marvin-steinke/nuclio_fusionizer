@@ -21,21 +21,24 @@ def test_delete():
     # test logic for the /delete/ endpoint
     response = client.delete("/delete/test_function")
     assert response.status_code == 200
-    assert response.json() == {"status": "success", "function_name": "test_function"}
+    assert response.json() == {"status": "success",
+                               "function_name": "test_function"}
 
 
 def test_get():
     # test logic for the /get/ endpoint
     response = client.get("/get/test_function")
     assert response.status_code == 200
-    assert response.json() == {"status": "success", "function_name": "test_function"}
+    assert response.json() == {"status": "success",
+                               "function_name": "test_function"}
 
 
 def test_invoke():
     # test logic for the /invoke/ endpoint
     response = client.post("/invoke/test_function")
     assert response.status_code == 200
-    assert response.json() == {"status": "success", "function_name": "test_function"}
+    assert response.json() == {"status": "success",
+                               "function_name": "test_function"}
 
 
 if __name__ == "__main__":

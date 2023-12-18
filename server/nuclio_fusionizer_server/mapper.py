@@ -32,29 +32,16 @@ class Task:
             nuclio_endpoint: Connection endpoint of the task.
             json_data: Optional JSON data for initialization.
         """
-
-        required_params = ["name", "dir_path", "nuclio_endpoint"]
-
-        if json_data:
-            missing_params = [param for param in required_params if
-                              param not in json_data]
-
-            if missing_params:
-                raise ValueError(
-                    f"Missing required parameter(s) in JSON data: "
-                    f"{', '.join(missing_params)}")
-
+        if json_data is not None:
+            if not all(param in json_data for param in
+                       ["name", "dir_path", "nuclio_endpoint"]):
+                raise ValueError("There are parameters missing in json_data.")
             self.name = json_data.get("name", "")
             self.dir_path = json_data.get("dir_path", "")
             self.nuclio_endpoint = json_data.get("nuclio_endpoint", "")
         else:
-            missing_params = [param for param in required_params if
-                              locals()[param] is None]
-
-            if missing_params:
-                raise ValueError(
-                    f"Missing required parameter(s): {', '.join(missing_params)}")
-
+            if name is None or dir_path is None or nuclio_endpoint is None:
+                raise ValueError("There are parameters missing.")
             self.name = name
             self.dir_path = dir_path
             self.nuclio_endpoint = nuclio_endpoint
@@ -86,6 +73,7 @@ class FusionGroup:
         to_json: Converts the object into a JSON string.
         __eq__: Equality comparison handler that compares tasks as sets.
     """
+    name: str
     nuclio_endpoint: str
     build_dir: str
     tasks: list[Task] = field(default_factory=list)
@@ -102,29 +90,18 @@ class FusionGroup:
             build_dir: The path to the directory containing the build files.
             json_data: Optional JSON data for initialization.
         """
-
-        required_params = ["nuclio_endpoint", "build_dir"]
-
-        if json_data:
-            missing_params = [param for param in required_params if
-                              param not in json_data]
-
-            if missing_params:
-                raise ValueError(
-                    f"Missing required parameter(s) in JSON data: "
-                    f"{', '.join(missing_params)}")
+        if json_data is not None:
+            if not all(param in json_data for param in
+                       ["nuclio_endpoint", "build_dir"]):
+                raise ValueError("There are parameters missing in json_data.")
 
             self.nuclio_endpoint = json_data.get("nuclio_endpoint", "")
             self.build_dir = json_data.get("build_dir", "")
             tasks_data = json_data.get("tasks", [])
             self.tasks = [Task(task_data) for task_data in tasks_data]
         else:
-            missing_params = [param for param in required_params if
-                              locals()[param] is None]
-
-            if missing_params:
-                raise ValueError(
-                    f"Missing required parameter(s): {', '.join(missing_params)}")
+            if build_dir is None or nuclio_endpoint is None:
+                raise ValueError("There are parameters missing.")
             if tasks is None:
                 tasks = field(default_factory=list)
 
@@ -169,6 +146,7 @@ class Mapper:
         get: Return deepcopy of the current fusion setup.
         update: Replace the current fusion setup with the new setup provided.
         get_group: Return the group where the task is present.
+        get_task: Returns the task with a given name.
     """
     _instance = None
     _fusion_setup: list[FusionGroup] = field(default_factory=list)
@@ -227,4 +205,18 @@ class Mapper:
         for group in self._fusion_setup:
             if task in group.tasks:
                 return group
+        return None
+
+    def get_task(self, name: str) -> Task | None:
+        """Returns the task with a given name.
+
+        Args:
+            name: Task to find the group for.
+
+        Returns:
+            The task object with the same name or None if not found.
+        """
+        for task in self.tasks():
+            if task.name == name:
+                return task
         return None
