@@ -116,11 +116,15 @@ def handler(context, event):
         """
         group = deepcopy(group)
         # New build dir for group
-        group_name = "".join([task.name for task in group.tasks])
-        group_build_path = os.path.join(self.build_dir, group_name)
+        task_names = [task.name for task in group.tasks]
+        group_build_path = os.path.join(self.build_dir, "".join(task_names))
         if os.path.exists(group_build_path):
             shutil.rmtree(group_build_path)
         os.makedirs(group_build_path)
+        logger.debug(
+            f"Starting build process for Tasks {", ".join(task_names)} in directory "
+            f"{group_build_path}"
+        )
 
         # Copy all tasks to build dir
         for task in group.tasks:
@@ -146,5 +150,5 @@ def handler(context, event):
 
         self._create_handler(group, group_build_path)
 
-        task_list_str = ", ".join([task.name for task in group.tasks])
-        logger.info(f"Successfully fused Tasks: {task_list_str}")
+        logger.debug(f"Contents of {group_build_path}: {os.listdir(group_build_path)}")
+        logger.info(f"Successfully fused Tasks: {", ".join(task_names)}")
