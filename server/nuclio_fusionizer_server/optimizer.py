@@ -5,7 +5,7 @@ import bisect
 import json
 import time
 
-from nuclio_fusionizer_server.mapper import Mapper
+from nuclio_fusionizer_server.mapper import Mapper, FusionGroup
 
 
 class Optimizer(ABC, threading.Thread):
@@ -46,7 +46,7 @@ class Optimizer(ABC, threading.Thread):
         pass
 
     @abstractmethod
-    def _optimize(self) -> list[list[str]]:
+    def _optimize(self) -> list[FusionGroup] | list[list[str]]:
         """Generates a new Fusion Setup.
 
         Returns:
@@ -84,7 +84,14 @@ class StaticOptimizer(Optimizer):
             logger.error(f"Failed to load Fusion Setups from file '{config_file}'")
 
     def _sleep(self) -> None:
-        """Sleeps according to the time stamps in the config."""
+        """Pauses the execution for a time duration defined by a timestamp.
+
+        This method calculates the time to pause execution (sleep) based on the
+        timestamps in the configuration. On the first run, it will sleep for the
+        minimum time stamp value. In subsequent iterations, it sleeps for the
+        time difference between the next greater timestamp and the current one.
+        If no greater timestamp exists, the method stops the thread.
+        """
         # Take the min time stamp for first iter
         if self.time_stamp is None:
             min_key = min(self.config.keys())
