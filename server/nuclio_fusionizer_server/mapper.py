@@ -1,9 +1,11 @@
 from dataclasses import dataclass, field, asdict
 from copy import deepcopy
 from typing import Union
+from subprocess import CalledProcessError
 import json
 
 from nuclio_fusionizer_server.nuclio_interface import Nuctl
+from nuclio_fusionizer_server.fuser import Fuser
 
 
 @dataclass
@@ -12,8 +14,7 @@ class Task:
 
     Attributes:
         name: Name of the task.
-        nuclio_endpoint: Connection endpoint of the task.
-        fusionizer_endpoint: Connection endpoint of the fusionizer.
+        dir_path: Path to the Tasks implementation.
 
     Methods:
         __eq__: Equality comparison handler that compares tasks by name.
@@ -21,7 +22,6 @@ class Task:
 
     name: str
     dir_path: str = field(default="")
-    nuclio_endpoint: str = field(default="")
 
     def __eq__(self, other) -> bool:
         """Equality comparison method that compares tasks by name.
@@ -50,7 +50,7 @@ class FusionGroup:
         __eq__: Equality comparison handler that compares tasks as sets.
     """
 
-    nuclio_endpoint: str = field(default="")
+    name: str = field(default="")
     build_dir: str = field(default="")
     tasks: list[Task] = field(default_factory=list)
 
@@ -77,12 +77,21 @@ class FusionGroup:
         # Compare tasks as sets
         return set(self.tasks) == set(other.tasks)
 
+    def __str__(self) -> str:
+        """Returns a comma separated string of the names of all the tasks.
+
+        Return:
+            The name string.
+        """
+        return ", ".join(task.name for task in self.tasks)
+
 
 class Mapper:
     """Class that handles the management of Fusion Groups.
 
     Args:
         nuctl: Nuclio cli utility.
+        fuser: Fuser object, that handles the fusion of Tasks.
 
     Methods:
         tasks: Return all tasks in a Fusion Setup.
@@ -91,8 +100,9 @@ class Mapper:
         get_group: Return the group where the task is present.
     """
 
-    def __init__(self, nuctl: Nuctl) -> None:
+    def __init__(self, nuctl: Nuctl, fuser: Fuser) -> None:
         self._nuctl = nuctl
+        self._fuser = fuser
         self._fusion_setup: list[FusionGroup] = []
 
     def tasks(self, setup: list[FusionGroup]) -> list[Task]:
@@ -162,22 +172,48 @@ class Mapper:
         intersection = set(new_setup) & set(self._fusion_setup)
         to_deploy = set(new_setup) - intersection
         to_delete = set(self._fusion_setup) - intersection
-        # TODO add deploy and delete logic via nuclio_interface.py
+        # Deploy and delete
+        for group in to_delete:
+            try:
+                self._nuctl.delete(group)
+            except CalledProcessError:
+                # Failures are logged in Nuctl
+                pass
+        for group in to_deploy:
+            try:
+                self._nuctl.deploy(group)
+            except CalledProcessError:
+                # Failures are logged in Nuctl
+                pass
         self._fusion_setup = new_setup
 
-    def get_group(
-        self, setup: list[FusionGroup], task: Task
-    ) -> Union[FusionGroup, None]:
+    def group(self, task_name: str) -> Union[FusionGroup, None]:
         """Returns the group in which the task is present.
 
         Args:
-            task: Task to find the group for.
-            setup: A list of Fusion Groups.
+            task_name: Name of the Task to find the group for.
 
         Returns:
             The FusionGroup object in which the task is present or None if not found.
         """
-        for group in setup:
-            if task in group.tasks:
-                return group
+        for group in self._fusion_setup:
+            for task in group.tasks:
+                if task.name == task_name:
+                    return group
         return None
+
+    def deploy_single(self, task: Task) -> str:
+        # Every Task initially gets its own Fusion Group, until changed by Optimizer
+        group = FusionGroup()
+        group.tasks.append(task)
+        self._fusion_setup.append(group)
+
+        # Build the Fusion Group
+        self._fuser.fuse(group)
+
+        # actually deploy the Fusion Group
+        return self._nuctl.deploy(group)
+
+    def delete(self, task_name) -> None:
+        # TODO
+        pass

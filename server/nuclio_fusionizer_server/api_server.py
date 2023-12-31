@@ -1,6 +1,5 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from zipfile import ZipFile
-import json
 import os
 import uvicorn
 import shutil
@@ -49,17 +48,18 @@ class ApiServer:
             if os.path.exists(dest_dir):
                 shutil.rmtree(dest_dir)
                 os.makedirs(dest_dir)
+            # Unpack zip
             with ZipFile(zip_file.file, "r") as zip_ref:
                 zip_ref.extractall(dest_dir)
 
             # Create Task and deploy it
             task = Task(task_name, dir_path=dest_dir)
             try:
-                self.mapper.deploy(task)
+                result = self.mapper.deploy_single(task)
             except Exception as e:
                 raise HTTPException(status_code=422, detail=e)
 
-            return {"message": f"Successfully deployed Task '{task_name}'"}
+            return {"message": f"Successfully deployed Task '{task_name}':\n{result}"}
 
         @self.app.delete("/{task_name}/delete")
         async def delete(task_name: str):
@@ -75,11 +75,11 @@ class ApiServer:
                 HTTPException if the Task to delete could not be found.
             """
             try:
-                self.mapper.delete(task_name)
+                result = self.mapper.delete(task_name)
             except Exception as e:
                 raise HTTPException(status_code=422, detail=e)
 
-            return {"message": f"Successfully deleted Task '{task_name}'"}
+            return {"message": f"Successfully deleted Task '{task_name}':\n{result}"}
 
         @self.app.get("/{task_name}/get")
         async def get(task_name: str):
@@ -92,14 +92,20 @@ class ApiServer:
                 A dict with Task information.
 
             Raises:
-                HTTPException if the Task could not be found.
+                HTTPException if the Task could not be found or the nuctl
+                command fails.
             """
             group = self.mapper.group(task_name)
             if not group:
                 raise HTTPException(
                     status_code=422, detail=f"No Task '{task_name}' could be found"
                 )
-            return {"message": self.nuctl.get(group.name)}
+            try:
+                result = self.nuctl.get(group)
+            except Exception as e:
+                raise HTTPException(status_code=422, detail=e)
+
+            return {"message": result}
 
         @self.app.post("/{task_name}")
         async def invoke(task_name: str, args: dict[str, str]):
@@ -113,17 +119,30 @@ class ApiServer:
                 A dict with the output of the Task.
 
             Raises:
-                HTTPException if the Task could not be found.
+                HTTPException if the Task could not be found or the nuctl
+                command fails.
             """
+            # Find group associated with Task
             group = self.mapper.group(task_name)
             if not group:
                 raise HTTPException(
                     status_code=422, detail=f"No Task '{task_name}' could be found"
                 )
-            content_type = "application/json"
-            body = json.dumps(args)
-            output = self.nuctl.invoke(group.name, content_type=content_type, body=body)
-            return {"message": output}
+
+            # Find Task of group
+            task = None
+            for group_task in group.tasks:
+                if group_task.name == task_name:
+                    task = group_task
+            assert task is not None
+
+            # Invoke Task
+            try:
+                result = self.nuctl.invoke(group, task, args)
+            except Exception as e:
+                raise HTTPException(status_code=422, detail=e)
+
+            return {"message": result}
 
     def run(self):
         """Starts the Uvicorn server for handling HTTP requests."""

@@ -1,5 +1,9 @@
 from loguru import logger
 import subprocess
+import os
+import json
+
+from nuclio_fusionizer_server.mapper import FusionGroup, Task
 
 
 class Nuctl:
@@ -12,21 +16,14 @@ class Nuctl:
         platform: The Nuclio platform to use (default is `auto`)
 
     Methods;
-        _gloabl_flags() -> list[str]:
-            Returns the global flags used for nuctl commands.
-        _exec_cmd(command: list[str]) -> str:
-            Executes a Nuclio CLI ('nuctl') command.
-        deploy(name: str, src_path: str, config: str) -> str
-            Deploy a Nuclio function.
-        delete(name: str) -> str
-            Deletes a Nuclio function.
-        get(kind: str) -> str
-            Returns information about a Nuclio 'kind'.
-        invoke(name: str, body: str, content_type: str, headers: str, method: str) -> str
-            Invokes a Nuclio function with some payload.
-        update(name: str, src_path: str, config: str) -> str
-            Updates a Nuclio function.
+        _gloabl_flags: Returns the global flags used for nuctl commands.
+        _exec_cmd: Executes a Nuclio CLI ('nuctl') command.
+        deploy: Deploys a Fusion Group as a Nuclio function.
+        delete: Deletes a Fusion Group deployed as a Nuclio function.
+        get: Provides information about a Fusion Group deployed as a Nuclio function.
+        invoke: Invokes a Task in a Fusion Group deployed as a Nuclio function.
     """
+
     def __init__(
         self,
         namespace: str,
@@ -74,96 +71,108 @@ class Nuctl:
         result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         return result.stdout.decode("utf-8")
 
-    def deploy(
-        self,
-        name: str,
-        src_path: str,
-        config: str,
-    ) -> str:
-        """Deploys a Nuclio function.
+    def deploy(self, group: FusionGroup) -> str:
+        """Deploys a Fusion Group as a Nuclio function.
 
         Args:
-        name: The name of function to deploy.
-        src_path: The path to the source code.
-        config: The function configuration file.
+            group: Fusion Group object with finished build process.
 
         Returns:
             The server response.
         """
         command = [
-            "nuctl", "deploy", name, 
-            "--path", src_path, 
-            "--file", config
+            "nuctl",
+            "deploy",
+            group.name,
+            "--path",
+            group.build_dir,
+            "--file",
+            os.path.join(group.build_dir, "function.yaml"),
         ]
-        return self._exec_cmd(command)
+        try:
+            result = self._exec_cmd(command)
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to deploy Fusion Group with Tasks {str(group)}:\n{e}")
+            raise e
+        logger.info(
+            f"Successfully deployed Fusion Group with Tasks {str(group)}:\n{result}"
+        )
+        return result
 
-    def delete(self, name: str) -> str:
-        """Deletes a Nuclio function.
+    def delete(self, group: FusionGroup) -> str:
+        """Deletes a Fusion Group deployed as a Nuclio function.
 
         Args:
-            name: The name of the function to delete.
+            group: Previously deployed Fusion Group.
 
         Returns:
             The server response.
         """
-        command = ["nuctl", "delete", name]
-        return self._exec_cmd(command)
+        command = ["nuctl", "delete", group.name]
+        try:
+            result = self._exec_cmd(command)
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to delete Fusion Group with Tasks {str(group)}:\n{e}")
+            raise e
+        logger.info(
+            f"Successfully deleted Fusion Group with Tasks {str(group)}:\n{result}"
+        )
+        return result
 
-    def get(self, kind: str) -> str:
-        """Provides information about a Nuclio 'kind'.
+    def get(self, group: FusionGroup) -> str:
+        """Provides information about a Fusion Group deployed as a Nuclio function.
 
         Args:
-            kind: The type of Nuclio resource (e.g., function, trigger, etc.).
+            group: Previously deployed Fusion Group.
 
         Returns;
             The server response.
         """
-        command = ["nuctl", "get", kind]
-        return self._exec_cmd(command)
+        command = ["nuctl", "get", "function", group.name]
+        try:
+            result = self._exec_cmd(command)
+        except subprocess.CalledProcessError as e:
+            logger.error(
+                "Failed to retrieve information about Fusion Group with "
+                f"Tasks {str(group)}:\n{e}"
+            )
+            raise e
+        logger.info(
+            "Successfully retrieved information about Fusion Group with Tasks "
+            f"{str(group)}:\n{result}"
+        )
+        return result
 
-    def invoke(
-        self, name: str, body: str, content_type: str, headers: str, method: str
-    ) -> str:
-        """Invokes a Nuclio function with a specified payload.
+    def invoke(self, group: FusionGroup, task: Task, args: dict) -> str:
+        """Invokes a Task in a Fusion Group deployed as a Nuclio function.
 
         Args:
-            name: The name of the function to invoke.
-            body: The request body.
-            content_type: HTTP type of content in the request body.
-            headers: HTTP request headers.
-            method: HTTP request method (e.g., GET, POST, etc.).
+            group: Previously deployed Fusion Group.
+            task: Specific Task of group to invoke.
+            args: Arguments to call the task with.
 
         Returns:
             The server response.
         """
+        # TODO create HTML header to specify Task to call
+        header = task.name
+        body = json.dumps(args)
         command = [
-            "nuctl", "invoke", name,
+            "nuctl", "invoke", group.name,
+            "--content-type", "application/json",
             "--body", body,
-            "--content-type", content_type,
-            "--headers", headers,
-            "--method", method,
+            "--headers", header,
         ]
-        return self._exec_cmd(command)
-
-    def update(
-        self,
-        name: str,
-        src_path: str,
-        config: str,
-    ) -> str:
-        """Updates a Nuclio function.
-
-        Args:
-            name: The name of function to update.
-            src_path: The path to the source code.
-            config: The function configuration file.
-
-        Returns:
-            The server response.
-        """
-        command = [
-            "nuctl", "update", name, 
-            "--path", src_path, 
-            "--file", config
-        ]
-        return self._exec_cmd(command)
+        try:
+            result = self._exec_cmd(command)
+        except subprocess.CalledProcessError as e:
+            logger.error(
+                f"Failed to invoke Task {task.name} with args {body} of Fusion "
+                f"Group with Tasks {str(group)}:\n{e}"
+            )
+            raise e
+        logger.info(
+            f"Successfully invoked Task {task.name} with args {body} of Fusion "
+            f"Group with Tasks {str(group)}:\n{result}"
+        )
+        return result
