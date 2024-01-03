@@ -60,7 +60,7 @@ class Fuser:
         with open(output_file, "w") as file:
             yaml.dump(merged_data, file)
 
-    def _create_handler(self, group: FusionGroup, group_build_path: str) -> None:
+    def _create_handler(self, group: FusionGroup) -> None:
         """Creates a handler script for the fused tasks.
 
         Generates a Python script that imports and dispatches requests to the
@@ -68,7 +68,6 @@ class Fuser:
 
         Args:
             group: The group of tasks to create a handler for.
-            group_build_path: The build path for the Fusion Group.
         """
         # Dictionary to hold import statements for each task
         import_dict = {}
@@ -97,11 +96,11 @@ from .dispatcher import Dispatcher
 def handler(context, event):
     tasks = {{{task_dict_str}}}
     dispatcher = Dispatcher(tasks, context, event)
-    dispatcher.run()
+    return dispatcher.run()
 """
 
         # Write handler script to a file
-        with open(os.path.join(group_build_path, "handler.py"), "w") as file:
+        with open(os.path.join(group.build_dir, "handler.py"), "w") as file:
             file.write(handler_str)
 
     def fuse(self, group: FusionGroup) -> None:
@@ -114,28 +113,27 @@ def handler(context, event):
         Args:
             group: The group of tasks to be fused.
         """
-        group = deepcopy(group)
         # New build dir for group
-        task_names = [task.name for task in group.tasks]
-        group_build_path = os.path.join(self.build_dir, "".join(task_names))
+        group_build_path = os.path.join(self.build_dir, group.name)
         if os.path.exists(group_build_path):
             shutil.rmtree(group_build_path)
         os.makedirs(group_build_path)
+        group.build_dir = group_build_path
         logger.debug(
-            f"Starting build process for Tasks {", ".join(task_names)} in directory "
+            f"Starting build process for Tasks {str(group)} in directory "
             f"{group_build_path}"
         )
 
+        copy_group = deepcopy(group)
         # Copy all tasks to build dir
-        for task in group.tasks:
+        for task in copy_group.tasks:
             new_dir_path = os.path.join(group_build_path, task.name)
             shutil.copytree(task.dir_path, new_dir_path)
             task.dir_path = new_dir_path
 
         # Merge all YAML files of tasks
         self._merge_yaml_files(
-            group.tasks,
-            os.path.join(group_build_path, "function.yaml"),
+            copy_group.tasks, os.path.join(group_build_path, "function.yaml")
         )
 
         # Copy dispatcher.py lib to build dir
@@ -145,10 +143,10 @@ def handler(context, event):
         )
 
         # Create __init__.py
-        with open(os.path.join(group_build_path, "__init__.py"), "w"):
-            pass
+        #with open(os.path.join(group_build_path, "__init__.py"), "w"):
+        #    pass
 
-        self._create_handler(group, group_build_path)
+        self._create_handler(copy_group)
 
         logger.debug(f"Contents of {group_build_path}: {os.listdir(group_build_path)}")
-        logger.info(f"Successfully fused Tasks: {", ".join(task_names)}")
+        logger.info(f"Successfully fused Tasks: {str(copy_group)}")
