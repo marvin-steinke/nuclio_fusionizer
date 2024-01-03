@@ -77,6 +77,10 @@ class FusionGroup:
         # Compare tasks as sets
         return set(self.tasks) == set(other.tasks)
 
+    def gen_name(self) -> None:
+        """Generates the groups name based on names of the tasks."""
+        self.name = "".join(task.name for task in self.tasks)
+
     def __str__(self) -> str:
         """Returns a comma separated string of the names of all the tasks.
 
@@ -152,6 +156,7 @@ class Mapper:
                     else task_dict[task_name]
                 )
                 group.tasks.append(task)
+            group.gen_name()
             if group in old_setup:
                 group = old_setup[old_setup.index(group)]
             new_setup.append(group)
@@ -203,17 +208,67 @@ class Mapper:
         return None
 
     def deploy_single(self, task: Task) -> str:
-        # Every Task initially gets its own Fusion Group, until changed by Optimizer
+        """Deploys a single Task to nuclio.
+
+        Every Task initially gets its own Fusion Group, until changed by
+        Optimizer. This Fusion Group is then built and deployed to nuclio using
+        nuctl.
+
+        Args:
+            task: Task to be deployed.
+
+        Returns:
+            The ouptut from nuctl.
+        """
         group = FusionGroup()
         group.tasks.append(task)
+        group.gen_name()
         self._fusion_setup.append(group)
 
         # Build the Fusion Group
         self._fuser.fuse(group)
 
-        # actually deploy the Fusion Group
+        # Actually deploy the Fusion Group
         return self._nuctl.deploy(group)
 
-    def delete(self, task_name) -> None:
-        # TODO
-        pass
+    def delete(self, task_name) -> str:
+        """Deletes a previously deployed Task.
+
+        To delete a deployed Task, its whole Fusion Group must be deleted from
+        nuclio. Since other Tasks should remain available, the Fusion Group is
+        copied and deployed w/out the to be deleted Task. After successfull
+        deployment, the old Fusion Group can be deleted.
+
+        Args:
+            task_name: Name of the to be deleted Task.
+
+        Returns:
+            The ooutput from nuctl.
+        """
+        # Get tasks group, make deepcopy
+        old_group = self.group(task_name)
+        if not old_group:
+            raise ValueError(f"Task '{task_name}' does not exist.")
+        group = deepcopy(old_group)
+
+        # Get task in group
+        task = None
+        for task_ in group.tasks:
+            if task_.name == task_name:
+                task = task_
+        assert task is not None
+        # Remove task from group
+        group.tasks.remove(task)
+        group.gen_name()
+        group.build_dir = ""
+
+        # Build and deploy the new group w/out task
+        self._fuser.fuse(group)
+        self._nuctl.deploy(group)
+        # Add new group to setup
+        self._fusion_setup.append(group)
+
+        # Remove old group from setup
+        self._fusion_setup.remove(old_group)
+        # and delete from nuclio
+        return self._nuctl.delete(old_group)
