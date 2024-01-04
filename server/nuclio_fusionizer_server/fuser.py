@@ -5,7 +5,7 @@ import os
 import shutil
 import yaml
 
-from nuclio_fusionizer_server.mapper import FusionGroup, Task
+from nuclio_fusionizer_server.mapper import FusionGroup
 
 
 class Fuser:
@@ -26,39 +26,41 @@ class Fuser:
         if not os.path.exists(self.build_dir):
             os.makedirs(self.build_dir)
 
-    def _merge_yaml_files(
-        self,
-        tasks: list[Task],
-        output_file: str,
-    ) -> None:
-        """Merges multiple YAML configuration files into a single file.
+    def _merge_files(self, group: FusionGroup) -> None:
+        """Merges multiple requirements.txt and YAML configuration files.
 
-        This method takes a list of tasks, each with its own YAML configuration,
-        and merges them into a single YAML file. This is used to combine the
-        configurations of multiple tasks into a single deployment.
+        This method takes a Fusion Group and for each Task merges their YAML
+        configuration file as well as possible requirements.txt. This is used to
+        combine the configurations of multiple Tasks into a single deployment.
 
         Args:
-            tasks: A list of Task objects to be merged.
-            output_file: The path to the output YAML file.
+            group: The Fusion Group to merge files for.
         """
-        merged_data = {}
+        merged_yaml = {}
+        merged_requirements = ""
 
-        # Loop through input YAML files
-        for task in tasks:
+        # Loop through input YAML and requirements.txt files
+        for task in group.tasks:
             yaml_file = os.path.join(task.dir_path, "function.yaml")
+            requirements = os.path.join(task.dir_path, "requirements.txt")
+            if os.path.isfile(requirements):
+                with open(requirements, "r") as file:
+                    merged_requirements += file.read() + "\n"
             with open(yaml_file, "r") as file:
                 data = yaml.safe_load(file)
                 # Merge data from the current file into the merged_data dictionary
-                merged_data.update(data)
+                merged_yaml.update(data)
 
         # Overwrite Fusion Group specific data
-        merged_data["spec"]["handler"] = "dispatcher:handler"
-        task_names = ", ".join({task.name for task in tasks})
-        merged_data["spec"]["description"] = f"Fusion Group of tasks {task_names}"
+        merged_yaml["spec"]["handler"] = "dispatcher:handler"
+        merged_yaml["spec"]["description"] = f"Fusion Group of Tasks {str(group)}"
 
-        # Write the merged data to the output file
-        with open(output_file, "w") as file:
-            yaml.dump(merged_data, file)
+        # Write the merged data to the output files
+        with open(os.path.join(group.build_dir, "function.yaml"), "w") as file:
+            yaml.dump(merged_yaml, file)
+        if merged_requirements:
+            with open(os.path.join(group.build_dir, "requirements.txt"), "w") as file:
+                file.write(merged_requirements)
 
     def _create_handler(self, group: FusionGroup) -> None:
         """Creates a handler script for the fused tasks.
@@ -132,9 +134,7 @@ def handler(context, event):
             task.dir_path = new_dir_path
 
         # Merge all YAML files of tasks
-        self._merge_yaml_files(
-            copy_group.tasks, os.path.join(group_build_path, "function.yaml")
-        )
+        self._merge_files(copy_group)
 
         # Copy dispatcher.py lib to build dir
         shutil.copy(
@@ -143,7 +143,7 @@ def handler(context, event):
         )
 
         # Create __init__.py
-        #with open(os.path.join(group_build_path, "__init__.py"), "w"):
+        # with open(os.path.join(group_build_path, "__init__.py"), "w"):
         #    pass
 
         self._create_handler(copy_group)
