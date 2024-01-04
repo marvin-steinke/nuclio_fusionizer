@@ -1,11 +1,14 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from dataclasses import dataclass, field, asdict
 from copy import deepcopy
 from typing import Union
 from subprocess import CalledProcessError
 import json
 
-from nuclio_fusionizer_server.nuclio_interface import Nuctl
-from nuclio_fusionizer_server.fuser import Fuser
+if TYPE_CHECKING:
+    from nuclio_fusionizer_server.nuclio_interface import Nuctl
+    from nuclio_fusionizer_server.fuser import Fuser
 
 
 @dataclass
@@ -35,6 +38,14 @@ class Task:
         if not isinstance(other, Task):
             return NotImplemented
         return self.name == other.name
+
+    def __hash__(self) -> int:
+        """Hash method, uses the Tasks name to return hash value.
+
+        Returns:
+            Integer hash value of the Tasks name.
+        """
+        return hash(self.name)
 
 
 @dataclass

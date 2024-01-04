@@ -1,9 +1,12 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from loguru import logger
 import subprocess
 import os
 import json
 
-from nuclio_fusionizer_server.mapper import FusionGroup, Task
+if TYPE_CHECKING:
+    from nuclio_fusionizer_server.mapper import FusionGroup, Task
 
 
 class Nuctl:

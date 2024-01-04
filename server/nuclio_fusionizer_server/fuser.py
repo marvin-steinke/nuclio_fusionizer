@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from loguru import logger
 from copy import deepcopy
 from importlib.resources import files
@@ -5,7 +7,8 @@ import os
 import shutil
 import yaml
 
-from nuclio_fusionizer_server.mapper import FusionGroup
+if TYPE_CHECKING:
+    from nuclio_fusionizer_server.mapper import FusionGroup
 
 
 class Fuser:
@@ -27,30 +30,37 @@ class Fuser:
             os.makedirs(self.build_dir)
 
     def _merge_files(self, group: FusionGroup) -> None:
-        """Merges multiple requirements.txt and YAML configuration files.
+        """Merges multiple YAML configuration files.
 
         This method takes a Fusion Group and for each Task merges their YAML
-        configuration file as well as possible requirements.txt. This is used to
-        combine the configurations of multiple Tasks into a single deployment.
+        configuration file. This is used to combine the configurations of
+        multiple Tasks into a single deployment.
 
         Args:
             group: The Fusion Group to merge files for.
         """
         merged_yaml = {}
-        merged_requirements = ""
+        build_commands = ["pip install requests"]
 
         # Loop through input YAML and requirements.txt files
         for task in group.tasks:
             yaml_file = os.path.join(task.dir_path, "function.yaml")
-            requirements = os.path.join(task.dir_path, "requirements.txt")
-            if os.path.isfile(requirements):
-                with open(requirements, "r") as file:
-                    merged_requirements += file.read() + "\n"
             with open(yaml_file, "r") as file:
                 data = yaml.safe_load(file)
                 # Merge data from the current file into the merged_data dictionary
+                if (
+                    "spec" in data
+                    and "build" in data["spec"]
+                    and "commands" in data["spec"]["build"]
+                ):
+                    build_command = data["spec"]["build"]["commands"]
+                    if build_command:
+                        build_commands.extend(build_command)
                 merged_yaml.update(data)
 
+        # Add build commands
+        if build_commands:
+            merged_yaml["spec"]["build"]["commands"] = build_commands
         # Overwrite Fusion Group specific data
         merged_yaml["spec"]["handler"] = "dispatcher:handler"
         merged_yaml["spec"]["description"] = f"Fusion Group of Tasks {str(group)}"
@@ -58,9 +68,6 @@ class Fuser:
         # Write the merged data to the output files
         with open(os.path.join(group.build_dir, "function.yaml"), "w") as file:
             yaml.dump(merged_yaml, file)
-        if merged_requirements:
-            with open(os.path.join(group.build_dir, "requirements.txt"), "w") as file:
-                file.write(merged_requirements)
 
     def _create_handler(self, group: FusionGroup) -> None:
         """Creates a handler script for the fused tasks.
@@ -78,7 +85,7 @@ class Fuser:
             function_config = os.path.join(task.dir_path, "function.yaml")
             with open(function_config, "r") as file:
                 data = yaml.safe_load(file)
-                handler = data["handler"].split(":")
+                handler = data["spec"]["handler"].split(":")
                 # Create and store the import statement for this task
                 import_str = (
                     f"from .{task.name}.{handler[0]} import {handler[1]} as {task.name}"
