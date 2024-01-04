@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Callable, Any
 from urllib3.util.retry import Retry as Retry
 from urllib.parse import urlparse
@@ -123,7 +124,7 @@ class Dispatcher:
             ValueError: If no value for the 'Fusionizer-Server-Address' field
                 was provided in the header.
         """
-        fusionizer_server_addr = self.event.trigger.header.get(
+        fusionizer_server_addr = self.event.headers.get(
             "Fusionizer-Server-Address"
         )
         if not fusionizer_server_addr:
@@ -155,7 +156,7 @@ class Dispatcher:
             ValueError: If the task name is not handled by the given Fusion
                 Group.
         """
-        task_name = self.event.trigger.headers.get("Function-Name")
+        task_name = self.event.headers.get("Task-Name")
         if not task_name:
             raise ValueError(
                 "No value for the 'Task-Name' field was provided in the Header."
@@ -179,5 +180,5 @@ class Dispatcher:
             The result returned by the chosen task handler function.
         """
         handler = self._choose_handler()
-        result = handler()
+        result = handler(self.context, self.event)
         return result

@@ -40,7 +40,7 @@ class Fuser:
             group: The Fusion Group to merge files for.
         """
         merged_yaml = {}
-        build_commands = ["pip install requests"]
+        build_commands = ["pip install requests"] # Dispatcher dependency
 
         # Loop through input YAML and requirements.txt files
         for task in group.tasks:
@@ -62,7 +62,7 @@ class Fuser:
         if build_commands:
             merged_yaml["spec"]["build"]["commands"] = build_commands
         # Overwrite Fusion Group specific data
-        merged_yaml["spec"]["handler"] = "dispatcher:handler"
+        merged_yaml["spec"]["handler"] = "handler:handler"
         merged_yaml["spec"]["description"] = f"Fusion Group of Tasks {str(group)}"
 
         # Write the merged data to the output files
@@ -88,7 +88,7 @@ class Fuser:
                 handler = data["spec"]["handler"].split(":")
                 # Create and store the import statement for this task
                 import_str = (
-                    f"from .{task.name}.{handler[0]} import {handler[1]} as {task.name}"
+                    f"from {task.name}.{handler[0]} import {handler[1]} as {task.name}"
                 )
                 import_dict[task] = import_str
 
@@ -100,7 +100,7 @@ class Fuser:
         # Create handler script with import statements and handler function
         handler_str = f"""
 {import_statements}
-from .dispatcher import Dispatcher
+from dispatcher import Dispatcher
 
 def handler(context, event):
     tasks = {{{task_dict_str}}}
