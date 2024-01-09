@@ -13,6 +13,7 @@ class Nuctl:
     """Wrapper Class for nuctl, the nuclio cli utility.
 
     Attributes:
+        fusionizer_address: Public or private address of the Fusionizer Server.
         namespace: The Kubernetes namespace to operate within.
         registry: The Docker registry to use for function deployments.
         kubeconfig: Path to Kubeconfig file.
@@ -29,6 +30,7 @@ class Nuctl:
 
     def __init__(
         self,
+        fusionizer_address: str,
         namespace: str | None = None,
         registry: str | None = None,
         kubeconfig: str | None = None,
@@ -41,6 +43,7 @@ class Nuctl:
             err_msg = "nuctl utility not found. Please install nuclio cli."
             logger.critical(err_msg)
             raise EnvironmentError(err_msg) from e
+        self.fusionizer_address = fusionizer_address
         self.namespace = namespace
         self.registry = registry
         self.kubeconfig = kubeconfig
@@ -155,8 +158,10 @@ class Nuctl:
         Returns:
             The server response.
         """
-        # TODO create HTML header to specify Task to call
-        header = task.name
+        # Create HTML header to specify Task to call
+        header = (
+            f"Task-Name={task.name},Fusionizer-Server-Address={self.fusionizer_address}"
+        )
         body = json.dumps(args)
         command = [
             "nuctl", "invoke", group.name,
