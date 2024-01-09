@@ -5,7 +5,7 @@ import bisect
 import json
 import time
 
-from nuclio_fusionizer_server import Mapper, FusionGroup
+from nuclio_fusionizer import Mapper, FusionGroup
 
 
 class Optimizer(ABC, threading.Thread):

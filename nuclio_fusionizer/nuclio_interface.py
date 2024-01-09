@@ -6,7 +6,7 @@ import os
 import json
 
 if TYPE_CHECKING:
-    from nuclio_fusionizer_server import FusionGroup, Task
+    from nuclio_fusionizer import FusionGroup, Task
 
 
 class Nuctl:

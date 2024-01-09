@@ -8,7 +8,7 @@ import shutil
 import yaml
 
 if TYPE_CHECKING:
-    from nuclio_fusionizer_server import FusionGroup
+    from nuclio_fusionizer import FusionGroup
 
 
 class Fuser:
@@ -145,7 +145,7 @@ def handler(context, event):
 
         # Copy dispatcher.py lib to build dir
         shutil.copy(
-            str(files("nuclio_fusionizer_server").joinpath("dispatcher.py")),
+            str(files("nuclio_fusionizer").joinpath("dispatcher.py")),
             group_build_path,
         )
 

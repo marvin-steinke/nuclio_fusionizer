@@ -1,6 +1,6 @@
 import argparse
 
-from nuclio_fusionizer_server import Nuctl, Fuser, Mapper, ApiServer, StaticOptimizer
+from nuclio_fusionizer import Nuctl, Fuser, Mapper, ApiServer, StaticOptimizer
 
 
 def create_parser() -> argparse.ArgumentParser:
