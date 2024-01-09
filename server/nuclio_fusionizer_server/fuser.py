@@ -8,7 +8,7 @@ import shutil
 import yaml
 
 if TYPE_CHECKING:
-    from nuclio_fusionizer_server.mapper import FusionGroup
+    from nuclio_fusionizer_server import FusionGroup
 
 
 class Fuser:

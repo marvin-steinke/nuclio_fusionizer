@@ -4,8 +4,7 @@ import os
 import uvicorn
 import shutil
 
-from nuclio_fusionizer_server.mapper import Mapper, Task
-from nuclio_fusionizer_server.nuclio_interface import Nuctl
+from nuclio_fusionizer_server import Mapper, Task, Nuctl
 
 
 class ApiServer:

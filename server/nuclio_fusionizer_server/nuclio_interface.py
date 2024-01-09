@@ -6,7 +6,7 @@ import os
 import json
 
 if TYPE_CHECKING:
-    from nuclio_fusionizer_server.mapper import FusionGroup, Task
+    from nuclio_fusionizer_server import FusionGroup, Task
 
 
 class Nuctl:
@@ -29,8 +29,8 @@ class Nuctl:
 
     def __init__(
         self,
-        namespace: str,
-        registry: str,
+        namespace: str | None = None,
+        registry: str | None = None,
         kubeconfig: str | None = None,
         platform: str = "auto",
     ) -> None:
@@ -52,13 +52,11 @@ class Nuctl:
         Returns:
             The list of global flags for nuctl commands.
         """
-        flags = [
-            "--namespace", self.namespace,
-            "--registry", self.registry,
-            "--platfrom", self.platform,
-        ]
-        if self.kubeconfig:
-            flags += ["--kubeconfig", self.kubeconfig]
+        flags = []
+        for var in ["namespace", "registry", "kubeconfig", "platform"]:
+            value = getattr(self, var)
+            if value:
+                flags += [f"--{var}", value]
         return flags
 
     def _exec_cmd(self, command: list[str]) -> str:

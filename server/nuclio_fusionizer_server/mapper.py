@@ -7,8 +7,7 @@ from subprocess import CalledProcessError
 import json
 
 if TYPE_CHECKING:
-    from nuclio_fusionizer_server.nuclio_interface import Nuctl
-    from nuclio_fusionizer_server.fuser import Fuser
+    from nuclio_fusionizer_server import Nuctl, Fuser
 
 
 @dataclass
