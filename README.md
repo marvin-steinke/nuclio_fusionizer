@@ -38,21 +38,41 @@ to the appropriate handlers within the fusion context.
 
 ## Usage
 
-1. To deploy a new Task or redeploy an existing one:
+To deploy a Task, you need to zip your Task files and then upload them via the
+API. Configure your Function [like instructed by
+Nuclio](https://nuclio.io/docs/latest/reference/function-configuration/function-configuration-reference/).
+Your Task files should be structured like this:
 
+```
+.
+├── function.yaml
+├── your_handler.py
+└── your_local_dependencies
+```
+
+ZIP compress your Task files:
+```
+zip Task.zip -r .
+```
+
+### API
+1. To deploy a new Task or redeploy an existing one:
 ```
 curl -X PUT http://localhost:8000/{task_name} \
      -H "Content-Type: multipart/form-data" \
      -F "@task.zip"
 ```
+
 2. To delete an existing Task:
 ```
 curl -X DELETE http://localhost:8000/{task_name}
 ```
+
 3. To get information about a Task:
 ```
 curl -X GET http://localhost:8000/{task_name}
 ```
+
 4. To invoke a Task:
 ```
 curl -X POST http://localhost:8000/{task_name} \
