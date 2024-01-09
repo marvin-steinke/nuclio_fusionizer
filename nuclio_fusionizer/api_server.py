@@ -28,7 +28,7 @@ class ApiServer:
         if not os.path.exists(self.task_dir):
             os.makedirs(self.task_dir)
 
-        @self.app.put("/{task_name}/deploy/")  # (re)-deploy
+        @self.app.put("/{task_name}")  # (re)-deploy
         async def deploy(task_name: str, zip_file: UploadFile = File(...)):
             """Deploys a new task or redeploys an existing one.
 
@@ -60,7 +60,7 @@ class ApiServer:
 
             return {"message": f"Successfully deployed Task '{task_name}':\n{result}"}
 
-        @self.app.delete("/{task_name}/delete")
+        @self.app.delete("/{task_name}")
         async def delete(task_name: str):
             """Deletes an existing task.
 
@@ -80,7 +80,7 @@ class ApiServer:
 
             return {"message": f"Successfully deleted Task '{task_name}':\n{result}"}
 
-        @self.app.get("/{task_name}/get")
+        @self.app.get("/{task_name}")
         async def get(task_name: str):
             """Retrieves information about a Task.
 
