@@ -1,14 +1,32 @@
 # Nuclio Fusionizer Server
 
-## Overview
+The Nuclio Fusionizer Server is a project that enables the fusion of specific
+tasks into a single Nuclio Function. This function can then be deployed to the
+open-source serverless computing platform, Nuclio. 
 
-The Nuclio Fusionizer is a server for handling Task and Fusion Group operations
-in a serverless computing environment using Nuclio. It exposes an API for
-deploying, deleting, retrieving information, and invoking Nuclio functions that
-represent both individual Tasks and groups of Tasks that are fused to optimize
-resource usage and performance.
+The project is informed by the principles outlined in the Fusionize++ paper,
+which discusses the benefits and disadvantages of the Function-as-a-Service
+(FaaS) model in serverless computing. One key take away from the paper, and the
+guiding principle of this project, is the optimization of operational
+flexibility and cost-effectiveness by fusing application code into an optimized
+multi-function composition.
 
-## Core Components
+## Key Features
+
+- **Fusion of Tasks**: Through Nuclio Fusionizer, different tasks can be fused
+into a singular Nuclio function, thereby streamlining function calls and
+execution flow within an application.
+
+- **Elimination of Invocation Overhead, Cold starts, and Double Billing**:
+Because tasks operate within the same memory, invocation overheads, cold starts
+and double billing associated with individual function calls are eliminated.
+
+- **Customized Optimization**: An additional feature of the Nuclio Fusionizer is
+the capability to customize the optimization process for the fusion tasks with
+custom Optimizers, providing developers with the flexibility they require to set
+up their systems as needed.
+
+## Architecture
 
 The server comprises several components working together to achieve its functionality:
 
