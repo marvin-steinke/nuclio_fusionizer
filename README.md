@@ -1,28 +1,28 @@
 # Nuclio Fusionizer Server
 
 The Nuclio Fusionizer Server is a project that enables the fusion of specific
-tasks into a single Nuclio Function. This function can then be deployed to the
+Tasks into a single Nuclio Function. This function can then be deployed to the
 open-source serverless computing platform, Nuclio. 
 
-The project is informed by the principles outlined in the Fusionize++ paper,
-which discusses the benefits and disadvantages of the Function-as-a-Service
-(FaaS) model in serverless computing. One key take away from the paper, and the
-guiding principle of this project, is the optimization of operational
-flexibility and cost-effectiveness by fusing application code into an optimized
-multi-function composition.
+The project is informed by the principles outlined in the [Fusionize++ paper by
+Schirmer et al.](https://arxiv.org/abs/2311.04875), which discusses the benefits
+and disadvantages of the Function-as-a-Service (FaaS) model in serverless
+computing. One key take away from the paper, and the guiding principle of this
+project, is the optimization of operational flexibility and cost-effectiveness
+by fusing application code into an optimized multi-function composition.
 
 ## Key Features
 
-- **Fusion of Tasks**: Through Nuclio Fusionizer, different tasks can be fused
+- **Fusion of Tasks**: Through Nuclio Fusionizer, different Tasks can be fused
 into a singular Nuclio function, thereby streamlining function calls and
 execution flow within an application.
 
 - **Elimination of Invocation Overhead, Cold starts, and Double Billing**:
-Because tasks operate within the same memory, invocation overheads, cold starts
+Because Tasks operate within the same memory, invocation overheads, cold starts
 and double billing associated with individual function calls are eliminated.
 
 - **Customized Optimization**: An additional feature of the Nuclio Fusionizer is
-the capability to customize the optimization process for the fusion tasks with
+the capability to customize the optimization process for the fusion Tasks with
 custom Optimizers, providing developers with the flexibility they require to set
 up their systems as needed.
 
@@ -60,9 +60,9 @@ context.
 
 ## Usage
 
-To deploy a Task, you need to zip your Task files and then upload them via the
-API. Configure your Function [like instructed by
-Nuclio](https://nuclio.io/docs/latest/reference/function-configuration/function-configuration-reference/).
+Set up your Tasks [as instructed by
+nuclio](https://docs.nuclio.io/en/stable/tasks/deploying-functions.html). To
+deploy a Task, you need to zip your Task files and then upload them via the API.
 Your Task files should be structured like this:
 
 ```
@@ -74,7 +74,7 @@ Your Task files should be structured like this:
 
 ZIP compress your Task files:
 ```
-zip Task.zip -r .
+zip task.zip -r .
 ```
 
 ### API
