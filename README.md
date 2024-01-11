@@ -97,3 +97,4 @@ curl -X POST http://localhost:8000/{task_name} \
      -H "Content-Type: application/json" \
      -d '{"arg1":"value1", "arg2":"value2"}'
 ```
+![fusionizer](https://github.com/marvin-steinke/nuclio_fusionizer/assets/48684343/72ad1f9d-9ea2-4fce-a620-4d245649ef98)
