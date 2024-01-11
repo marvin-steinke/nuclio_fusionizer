@@ -28,21 +28,24 @@ up their systems as needed.
 
 ## Architecture
 
+![fusionizer](https://github.com/marvin-steinke/nuclio_fusionizer/assets/48684343/72ad1f9d-9ea2-4fce-a620-4d245649ef98)
+
 The server comprises several components working together to achieve its functionality:
 
-- **Nuctl Interface (`nuclio_interface.py`)**: A Python abstraction layer for
+- **nuctl Interface (`nuclio_interface.py`)**: A Python abstraction layer for
 Nuclio's CLI tool `nuctl`, handling deployment, deletion, invocation, and
 information retrieval of Nuclio functions.
 
-- **Fuser (`fuser.py`)**: Takes care of the fusion process, merging multiple
-Tasks into a single Nuclio function deployment. It combines Tasks into a Fusion
-Group, generates a unified configuration and creates a dispatch mechanism.
+- **Task Fuser (`fuser.py`)**: Takes care of the fusion process, merging
+multiple Tasks into a single Nuclio function deployment. It combines Tasks into
+a Fusion Group, generates a unified configuration and creates a dispatch
+mechanism.
 
-- **Mapper (`mapper.py`)**: Manages the representation and operations on Fusion
-Groups, facilitating the mapping between Tasks and their corresponding fusion
-groups.
+- **Task Manager/Mapper (`mapper.py`)**: Manages the representation and
+operations on Fusion Groups, facilitating the mapping between Tasks and their
+corresponding fusion groups.
 
-- **ApiServer (`api_server.py`)**: FastAPI based server that provides an HTTP
+- **FastApi Server (`api_server.py`)**: FastAPI based server that provides an HTTP
 interface for user interaction with the fusionizer system. It defines endpoints
 for Task operations and utilizes the `Mapper` and `Nuctl` objects.
 
@@ -51,8 +54,9 @@ optimization strategies that periodically update the fusion setup based on
 various conditions or configurations. Implementation includes a static optimizer
 that changes setup based on a predefined schedule.
 
-- **Dispatcher (`dispatcher.py`)**: Intercepts HTTP requests and dispatches them
-to the appropriate handlers within the fusion context.
+- **Dispatcher (`dispatcher.py`)**: In the Nuclio Function, HTTP requests are
+intercepted and dispatched to the appropriate handlers within the fusion
+context.
 
 ## Usage
 
@@ -97,4 +101,3 @@ curl -X POST http://localhost:8000/{task_name} \
      -H "Content-Type: application/json" \
      -d '{"arg1":"value1", "arg2":"value2"}'
 ```
-![fusionizer](https://github.com/marvin-steinke/nuclio_fusionizer/assets/48684343/72ad1f9d-9ea2-4fce-a620-4d245649ef98)
