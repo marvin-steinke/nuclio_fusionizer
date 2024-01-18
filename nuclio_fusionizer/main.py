@@ -26,7 +26,7 @@ def create_parser() -> argparse.ArgumentParser:
 
 
 def main():
-    args = create_parser().parse_args
+    args = create_parser().parse_args()
     nuctl = Nuctl(args.address, namespace=args.namespace, kubeconfig=args.kubeconfig)
     fuser = Fuser()
     mapper = Mapper(nuctl, fuser)
