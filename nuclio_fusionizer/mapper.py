@@ -1,13 +1,13 @@
 from __future__ import annotations
+from loguru import logger
 from typing import TYPE_CHECKING
 from dataclasses import dataclass, field, asdict
 from copy import deepcopy
 from typing import Union
-from subprocess import CalledProcessError
 import json
 
 if TYPE_CHECKING:
-    from nuclio_fusionizer import Nuctl, Fuser
+    from nuclio_fusionizer import Nuctl, Fuser, NuctlError
 
 
 @dataclass
@@ -180,27 +180,37 @@ class Mapper:
         Args:
             new_setup: A list of Fusion Groups to become the new setup.
         """
+        logger.info(
+            f"Received new Fusion Setup: {new_setup}. Current Fusion Setup:"
+            f"{self._fusion_setup}. Starting update process."
+        )
         if new_setup is list[list[str]]:
             new_setup = self.json_to_setup(new_setup)
         assert new_setup is list[FusionGroup]
 
         intersection = set(new_setup) & set(self._fusion_setup)
+        logger.debug(f"The following Fusion Groups remain intact: {intersection}")
         to_deploy = set(new_setup) - intersection
+        logger.debug(f"The following new Fusion Groups are deployed: {to_deploy}")
         to_delete = set(self._fusion_setup) - intersection
+        logger.debug(f"The following new Fusion Groups are deleted: {to_deploy}")
         # Deploy and delete
         for group in to_delete:
             try:
                 self._nuctl.delete(group)
-            except CalledProcessError:
+            except NuctlError:
                 # Failures are logged in Nuctl
                 pass
         for group in to_deploy:
             try:
                 self._nuctl.deploy(group)
-            except CalledProcessError:
+            except NuctlError:
                 # Failures are logged in Nuctl
                 pass
         self._fusion_setup = new_setup
+        logger.info(
+            f"Update process completed. New Fusion Setup: {self._fusion_setup}"
+        )
 
     def group(self, task_name: str) -> Union[FusionGroup, None]:
         """Returns the group in which the task is present.
@@ -217,7 +227,7 @@ class Mapper:
                     return group
         return None
 
-    def deploy_single(self, task: Task) -> str:
+    def deploy_single(self, task: Task) -> None:
         """Deploys a single Task to nuclio.
 
         Every Task initially gets its own Fusion Group, until changed by
@@ -230,6 +240,7 @@ class Mapper:
         Returns:
             The ouptut from nuctl.
         """
+        logger.debug(f"Starting deployment process of single Task {task.name}")
         group = FusionGroup()
         group.tasks.append(task)
         group.gen_name()
@@ -239,9 +250,9 @@ class Mapper:
         self._fuser.fuse(group)
 
         # Actually deploy the Fusion Group
-        return self._nuctl.deploy(group)
+        self._nuctl.deploy(group)
 
-    def delete(self, task_name) -> str:
+    def delete(self, task_name) -> None:
         """Deletes a previously deployed Task.
 
         To delete a deployed Task, its whole Fusion Group must be deleted from
@@ -255,12 +266,14 @@ class Mapper:
         Returns:
             The ooutput from nuctl.
         """
+        logger.debug(f"Starting deletion process of Task {task_name}")
         # Get tasks group, make deepcopy
         old_group = self.group(task_name)
         if not old_group:
-            raise ValueError(f"Task '{task_name}' does not exist.")
-        group = deepcopy(old_group)
+            raise ValueError(f"Task {task_name} does not exist.")
+        logger.debug(f"Current Fusion Group of {task_name}: {str(old_group)}")
 
+        group = deepcopy(old_group)
         # Get task in group
         task = None
         for task_ in group.tasks:
@@ -272,13 +285,24 @@ class Mapper:
         group.gen_name()
         group.build_dir = ""
 
-        # Build and deploy the new group w/out task
-        self._fuser.fuse(group)
-        self._nuctl.deploy(group)
-        # Add new group to setup
-        self._fusion_setup.append(group)
+        # Check group is not empty now
+        if group.name:
+            # Build and deploy the new group w/out task
+            logger.debug(
+                f"Starting (re-)deployment process of Fusion Group {str(group)}"
+                f"without Task {task_name}"
+            )
+            self._fuser.fuse(group)
+            self._nuctl.deploy(group)
+            # Add new group to setup
+            self._fusion_setup.append(group)
 
         # Remove old group from setup
         self._fusion_setup.remove(old_group)
+        logger.debug(
+            f"State of Fusion Setup after deletion of Task {task_name}:"
+            f"{self._fusion_setup}"
+        )
+
         # and delete from nuclio
-        return self._nuctl.delete(old_group)
+        self._nuctl.delete(old_group)

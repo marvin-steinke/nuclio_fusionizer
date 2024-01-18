@@ -112,7 +112,7 @@ class Nuctl:
         Raises:
             NuctlError if nuctl command failed.
         """
-        command = ["nuctl", "delete", group.name]
+        command = ["nuctl", "delete", "function", group.name]
         try:
             self._exec_cmd(command)
         except subprocess.CalledProcessError as e:

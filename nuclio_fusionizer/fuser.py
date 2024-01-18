@@ -130,7 +130,7 @@ def handler(context, event):
         os.makedirs(group_build_path)
         group.build_dir = group_build_path
         logger.debug(
-            f"Starting build process for Tasks {str(group)} in directory "
+            f"Starting build process for Tasks {str(group)} in directory"
             f"{group_build_path}"
         )
 
