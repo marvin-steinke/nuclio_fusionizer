@@ -25,7 +25,7 @@ class Fuser:
     """
 
     def __init__(self) -> None:
-        self.build_dir = "build"
+        self.build_dir = "fusion_build"
         if not os.path.exists(self.build_dir):
             os.makedirs(self.build_dir)
 
@@ -59,8 +59,9 @@ class Fuser:
                 merged_yaml.update(data)
 
         # Add build commands
-        if build_commands:
-            merged_yaml["spec"]["build"]["commands"] = build_commands
+        if "build" not in merged_yaml["spec"]:
+            merged_yaml["spec"]["build"] = {}
+        merged_yaml["spec"]["build"]["commands"] = build_commands
         # Overwrite Fusion Group specific data
         merged_yaml["spec"]["handler"] = "handler:handler"
         merged_yaml["spec"]["description"] = f"Fusion Group of Tasks {str(group)}"
