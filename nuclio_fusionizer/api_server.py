@@ -1,5 +1,7 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, Request, HTTPException
+from fastapi.responses import PlainTextResponse
 from zipfile import ZipFile
+from typing import Any
 import os
 import uvicorn
 import shutil
@@ -28,8 +30,16 @@ class ApiServer:
         if not os.path.exists(self.task_dir):
             os.makedirs(self.task_dir)
 
+        @self.app.exception_handler(HTTPException)
+        async def http_exception_handler(
+            request: Request, exc: HTTPException
+        ) -> PlainTextResponse:
+            return PlainTextResponse(str(exc.detail), status_code=exc.status_code)
+
         @self.app.put("/{task_name}")  # (re)-deploy
-        async def deploy(task_name: str, zip_file: UploadFile = File(...)):
+        async def deploy(
+            task_name: str, zip_file: UploadFile = File(...)
+        ) -> PlainTextResponse:
             """Deploys a new task or redeploys an existing one.
 
             Args:
@@ -37,7 +47,7 @@ class ApiServer:
                 zip_file: The zip file containing code for the Rask.
 
             Returns:
-                A dict with a confirmation message of successful deployment.
+                Confirmation message of successful deployment.
 
             Raises:
                 HTTPException if an error occurred during the deployment.
@@ -54,34 +64,34 @@ class ApiServer:
             # Create Task and deploy it
             task = Task(task_name, dir_path=dest_dir)
             try:
-                result = self.mapper.deploy_single(task)
+                self.mapper.deploy_single(task)
             except Exception as e:
-                raise HTTPException(status_code=422, detail=e)
+                raise HTTPException(status_code=422, detail=str(e))
 
-            return {"message": f"Successfully deployed Task '{task_name}':\n{result}"}
+            return PlainTextResponse(f"Successfully deployed Task '{task_name}'")
 
         @self.app.delete("/{task_name}")
-        async def delete(task_name: str):
+        async def delete(task_name: str) -> PlainTextResponse:
             """Deletes an existing task.
 
             Args:
                 task_name: The name of the Task to delete.
 
             Returns:
-                A dict with a confirmation message of successful deletion.
+                Confirmation message of successful deletion.
 
             Raises:
                 HTTPException if the Task to delete could not be found.
             """
             try:
-                result = self.mapper.delete(task_name)
+                self.mapper.delete(task_name)
             except Exception as e:
-                raise HTTPException(status_code=422, detail=e)
+                raise HTTPException(status_code=422, detail=str(e))
 
-            return {"message": f"Successfully deleted Task '{task_name}':\n{result}"}
+            return PlainTextResponse(f"Successfully deleted Task '{task_name}'")
 
         @self.app.get("/{task_name}")
-        async def get(task_name: str):
+        async def get(task_name: str) -> PlainTextResponse:
             """Retrieves information about a Task.
 
             Args:
@@ -100,14 +110,21 @@ class ApiServer:
                     status_code=422, detail=f"No Task '{task_name}' could be found"
                 )
             try:
-                result = self.nuctl.get(group)
+                group_info = self.nuctl.get(group)
             except Exception as e:
-                raise HTTPException(status_code=422, detail=e)
+                raise HTTPException(status_code=422, detail=str(e))
 
-            return {"message": result}
+            other_groups = str(group) if len(group.tasks) > 1 else "None"
+
+            return PlainTextResponse(
+                f"Task {task_name}:\n"
+                f"Currently deployed with other Tasks: {other_groups}\n"
+                f"Status: {group_info["status"]["state"]}\n"
+                f"HTTP port: {group_info["status"]["httpPort"]}"
+            )
 
         @self.app.post("/{task_name}")
-        async def invoke(task_name: str, args: dict[str, str]):
+        async def invoke(task_name: str, args: dict[str, Any] = {}) -> PlainTextResponse:
             """Invokes a Task.
 
             Args:
@@ -139,9 +156,9 @@ class ApiServer:
             try:
                 result = self.nuctl.invoke(group, task, args)
             except Exception as e:
-                raise HTTPException(status_code=422, detail=e)
+                raise HTTPException(status_code=422, detail=str(e))
 
-            return {"message": result}
+            return PlainTextResponse(result)
 
     def run(self):
         """Starts the Uvicorn server for handling HTTP requests."""

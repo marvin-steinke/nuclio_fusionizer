@@ -2,11 +2,16 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from loguru import logger
 import subprocess
-import os
 import json
+import requests
 
 if TYPE_CHECKING:
     from nuclio_fusionizer import FusionGroup, Task
+
+
+class NuctlError(Exception):
+    def __init__(self, message: str, cpe: subprocess.CalledProcessError) -> None:
+        super().__init__(message + ":\n" + cpe.stderr.decode("utf-8"))
 
 
 class Nuctl:
@@ -71,83 +76,77 @@ class Nuctl:
         Returns:
             The command output.
         """
-        command += self._gloabl_flags()
-        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        command = ["sudo"] + command + self._gloabl_flags()
+        result = subprocess.run(command, check=True, capture_output=True)
         return result.stdout.decode("utf-8")
 
-    def deploy(self, group: FusionGroup) -> str:
+    def deploy(self, group: FusionGroup) -> None:
         """Deploys a Fusion Group as a Nuclio function.
 
         Args:
             group: Fusion Group object with finished build process.
 
-        Returns:
-            The server response.
+        Raises:
+            NuctlError if nuctl command failed.
         """
         command = [
-            "nuctl",
-            "deploy",
-            group.name,
-            "--path",
-            group.build_dir,
-            "--file",
-            os.path.join(group.build_dir, "function.yaml"),
+            "nuctl", "deploy", group.name,
+            "--path", group.build_dir,
         ]
         try:
-            result = self._exec_cmd(command)
+            self._exec_cmd(command)
         except subprocess.CalledProcessError as e:
-            logger.error(f"Failed to deploy Fusion Group with Tasks {str(group)}:\n{e}")
-            raise e
-        logger.info(
-            f"Successfully deployed Fusion Group with Tasks {str(group)}:\n{result}"
-        )
-        return result
+            nuctl_err = NuctlError(
+                f"Failed to deploy Fusion Group with Tasks {str(group)}", e
+            )
+            logger.error(str(nuctl_err))
+            raise nuctl_err
+        logger.info(f"Successfully deployed Fusion Group with Tasks {str(group)}")
 
-    def delete(self, group: FusionGroup) -> str:
+    def delete(self, group: FusionGroup) -> None:
         """Deletes a Fusion Group deployed as a Nuclio function.
 
         Args:
             group: Previously deployed Fusion Group.
 
-        Returns:
-            The server response.
+        Raises:
+            NuctlError if nuctl command failed.
         """
         command = ["nuctl", "delete", group.name]
         try:
-            result = self._exec_cmd(command)
+            self._exec_cmd(command)
         except subprocess.CalledProcessError as e:
-            logger.error(f"Failed to delete Fusion Group with Tasks {str(group)}:\n{e}")
-            raise e
-        logger.info(
-            f"Successfully deleted Fusion Group with Tasks {str(group)}:\n{result}"
-        )
-        return result
+            nuctl_err = NuctlError(
+                f"Failed to delete Fusion Group with Tasks {str(group)}", e
+            )
+            logger.error(str(nuctl_err))
+            raise nuctl_err
+        logger.info(f"Successfully deleted Fusion Group with Tasks {str(group)}")
 
-    def get(self, group: FusionGroup) -> str:
+    def get(self, group: FusionGroup) -> dict:
         """Provides information about a Fusion Group deployed as a Nuclio function.
 
         Args:
             group: Previously deployed Fusion Group.
 
-        Returns;
-            The server response.
+        Returns:
+            Fusion Group info as a dict.
+
+        Raises:
+            NuctlError if nuctl command failed.
         """
-        command = ["nuctl", "get", "function", group.name]
+        command = ["nuctl", "get", "function", group.name, "--output", "json"]
         try:
             result = self._exec_cmd(command)
         except subprocess.CalledProcessError as e:
-            logger.error(
-                "Failed to retrieve information about Fusion Group with "
-                f"Tasks {str(group)}:\n{e}"
+            nuctl_err = NuctlError(
+                f"Failed to get information about Fusion Group with Tasks {str(group)}", e
             )
-            raise e
-        logger.info(
-            "Successfully retrieved information about Fusion Group with Tasks "
-            f"{str(group)}:\n{result}"
-        )
-        return result
+            logger.error(str(nuctl_err))
+            raise nuctl_err
+        return json.loads(result)
 
-    def invoke(self, group: FusionGroup, task: Task, args: dict) -> str:
+    def invoke(self, group: FusionGroup, task: Task, args: dict | None = None) -> str:
         """Invokes a Task in a Fusion Group deployed as a Nuclio function.
 
         Args:
@@ -156,29 +155,35 @@ class Nuctl:
             args: Arguments to call the task with.
 
         Returns:
-            The server response.
+            The server response, i.e. the result of the Task invocation.
+
+        Raises:
+            NuctlError if nuctl command failed.
+            requests.RequestException if the http invocation fails.
         """
+        # Get function address
+        address = "http://" + self.get(group)["status"]["internalInvocationUrls"][0]
         # Create HTML header to specify Task to call
-        header = (
-            f"Task-Name={task.name},Fusionizer-Server-Address={self.fusionizer_address}"
+        header = {
+            "Content-Type": "application/json",
+            "Task-Name": task.name,
+            "Fusionizer-Server-Address": self.fusionizer_address
+        }
+
+        fail = (
+            f"Failed to invoke Task {task.name} with args {args} of Fusion "
+            f"Group with Tasks {str(group)}:\n"
         )
-        body = json.dumps(args)
-        command = [
-            "nuctl", "invoke", group.name,
-            "--content-type", "application/json",
-            "--body", body,
-            "--headers", header,
-        ]
         try:
-            result = self._exec_cmd(command)
-        except subprocess.CalledProcessError as e:
-            logger.error(
-                f"Failed to invoke Task {task.name} with args {body} of Fusion "
-                f"Group with Tasks {str(group)}:\n{e}"
-            )
-            raise e
+            response = requests.post(address, headers=header, json=args)
+        except requests.RequestException as e:
+            logger.error(fail + str(e))
+            raise
+        if response.status_code != 200:
+            raise Exception(fail + response.text)
+
         logger.info(
-            f"Successfully invoked Task {task.name} with args {body} of Fusion "
-            f"Group with Tasks {str(group)}:\n{result}"
+            f"Successfully invoked Task {task.name} with args {args} of Fusion "
+            f"Group with Tasks {str(group)}:\nResult: {response.text}"
         )
-        return result
+        return response.text
