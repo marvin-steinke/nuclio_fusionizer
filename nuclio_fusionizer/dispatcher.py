@@ -16,7 +16,7 @@ class FusionizerAdapter(HTTPAdapter):
     for customized responses.
 
     Args:
-        tasks: A dictionary of tasks that the client can call.
+        tasks: A dictionary of Tasks that the client can call.
         fusionizer_url: The base URL for the Fusionizer service.
         pool_connections: The number of connections to cache. Defaults to 10.
         pool_maxsize: The maximum number of connections to save in the pool.
@@ -46,24 +46,24 @@ class FusionizerAdapter(HTTPAdapter):
     def send(self, request: PreparedRequest, **kwargs):
         """Sends a PreparedRequest.
 
-        If the PreparedRequest object is for one of the tasks handled by this
-        adapter, the task is invoked locally and the result is returned as a
+        If the PreparedRequest object is for one of the Tasks handled by this
+        adapter, the Task is invoked locally and the result is returned as a
         Response. Otherwise, the PreparedRequest is handled as a regular
         request.
 
         Args:
             request: The PreparedRequest object to be sent. If the object is for
-                one of the tasks handled by this adapter, the URL must point to the
+                one of the Tasks handled by this adapter, the URL must point to the
                 adapter's fusionizer server, and the body must be a JSON-compliant
-                string that can be loaded as kwargs for the task.
+                string that can be loaded as kwargs for the Task.
             **kwargs: (optional) Keyword arguments to be used in the regular
                 *request (if the PreparedRequest is not for
-                one of the tasks handled by this adapter).
+                one of the Tasks handled by this adapter).
 
         Returns:
             The Response to the request. If the PreparedRequest was for one of
-            the tasks handled by this adapter, the content of the Response is
-            the result of the task invocation, and the status code is 200. If
+            the Tasks handled by this adapter, the content of the Response is
+            the result of the Task invocation, and the status code is 200. If
             the body of the PreparedRequest was not JSON-compliant, the content
             is 'Invalid JSON format' and the status code is 400.  Otherwise, the
             Response is the result of handling the PreparedRequest as a regular
@@ -71,15 +71,17 @@ class FusionizerAdapter(HTTPAdapter):
 
         Raises:
             ValueError: If the PreparedRequest object does not have an URL, or
-                if it is for one of the tasks handled by this adapter and does not
+                if it is for one of the Tasks handled by this adapter and does not
                 have a body.
         """
         if not request.url:
             raise ValueError("PreparedRequest object is missing url.")
         subaddrs = urlparse(request.url).path.strip("/")
+        base_url = request.url.replace("http://", "").replace("https://", "")
         if (
+            request.method == "POST"
             # If the base url is our fusionizer server
-            request.url.startswith(self.fusionizer_url)
+            and base_url.startswith(self.fusionizer_url)
             # and is only called with one subaddr (=function)
             and subaddrs
             and "/" not in subaddrs
@@ -110,12 +112,13 @@ class Dispatcher:
         self.tasks = tasks
         self.context = context
         self.event = event
+        self.session = requests.Session()
         self._intercept_http()
 
     def _intercept_http(self) -> None:
-        """Intercepts HTTP requests by replacing the default session.
+        """Intercepts HTTP requests by setting the session for the Tasks.
 
-        This method creates a new FusionizerAdapter with the tasks and
+        This method creates a new FusionizerAdapter with the Tasks and
         Fusionizer server address, and replaces the requests' default session
         with a custom session that utilizes this adapter. The adapter globaly
         mounts to all http and https addresses.
@@ -132,28 +135,25 @@ class Dispatcher:
                 "No value for the 'Fusionizer-Server-Address' field was provided in "
                 "the Header."
             )
-        adapter = FusionizerAdapter(self.tasks, fusionizer_server_addr)
+        adapter = FusionizerAdapter(self.tasks, fusionizer_server_addr, self.context)
         # Mount the custom adapter globally
-        session = requests.Session()
-        session.mount("http://", adapter)
-        session.mount("https://", adapter)
-        # Replace the requests' default session with our custom session
-        requests.Session = lambda: session
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
 
     def _choose_handler(self) -> Callable:
-        """Selects the right task handler based on the 'Task-Name' field.
+        """Selects the right Task handler based on the 'Task-Name' field.
 
-        This method retrieves the task name from the event header and checks if
-        such a task exists in the tasks dictionary. If it does, it returns the
-        corresponding task handler function.
+        This method retrieves the Task name from the event header and checks if
+        such a Task exists in the Tasks dictionary. If it does, it returns the
+        corresponding Task handler function.
 
         Returns:
-            The chosen task handler function.
+            The chosen Task handler function.
 
         Raises:
             ValueError: If no value for the 'Task-Name' field was provided in
                 the header.
-            ValueError: If the task name is not handled by the given Fusion
+            ValueError: If the Task name is not handled by the given Fusion
                 Group.
         """
         task_name = self.event.headers.get("Task-Name")
@@ -177,8 +177,8 @@ class Dispatcher:
         its result.
 
         Returns:
-            The result returned by the chosen task handler function.
+            The result returned by the chosen Task handler function.
         """
         handler = self._choose_handler()
-        result = handler(self.context, self.event)
+        result = handler(self.context, self.event, self.session)
         return result
