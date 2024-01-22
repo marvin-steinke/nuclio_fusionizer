@@ -31,8 +31,8 @@ def main():
     fuser = Fuser()
     mapper = Mapper(nuctl, fuser)
     api_server = ApiServer(nuctl, mapper)
-    # optimizer = StaticOptimizer(mapper, "config.json")
-    # optimizer.run()
+    optimizer = StaticOptimizer(mapper, "config.json")
+    optimizer.run()
     api_server.run()
 
 

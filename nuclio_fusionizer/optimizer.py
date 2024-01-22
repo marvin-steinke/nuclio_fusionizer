@@ -65,8 +65,8 @@ class StaticOptimizer(Optimizer):
         config_file: JSON file of the form:
             {<time after start up in seconds>: <list of list of task names},
             e.g.: {
-                60: [["Task1", "Task2"], ["Task3", "Task4"]],
-                120: [["Task1", "Task3"], ["Task2", "Task4"]]
+                "60": [["Task1", "Task2"], ["Task3", "Task4"]],
+                "120": [["Task1", "Task3"], ["Task2", "Task4"]]
             }
     """
 
@@ -79,9 +79,10 @@ class StaticOptimizer(Optimizer):
             with open(config_file, "r") as file:
                 self.config = json.load(file)
                 self.config = {int(k): v for k, v in self.config.items()}
-        except Exception as e:
-            logger.exception(e)
-            logger.error(f"Failed to load Fusion Setups from file '{config_file}'")
+        except Exception:
+            logger.error(f"Failed to load Fusion Setups from config file '{config_file}'")
+            raise
+        logger.info(f"Successfully loaded Fuion Setup from config file '{config_file}'")
 
     def _sleep(self) -> None:
         """Pauses the execution for a time duration defined by a timestamp.
@@ -112,6 +113,7 @@ class StaticOptimizer(Optimizer):
         # Determine sleep duration by substracting from current time stamp
         sleep_dur = next_time_stamp - self.time_stamp
         self.time_stamp = next_time_stamp
+        logger.debug(f"Optimizer thread is now sleeping for {sleep_dur}")
         time.sleep(sleep_dur)
 
     def _optimize(self) -> list[list[str]]:
@@ -122,4 +124,5 @@ class StaticOptimizer(Optimizer):
         """
         if self.time_stamp is None:
             return []
+        logger.info(f"Starting optimization process at time {self.time_stamp}")
         return self.config[self.time_stamp]
