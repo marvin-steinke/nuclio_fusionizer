@@ -174,6 +174,9 @@ class Nuctl:
             f"Failed to invoke Task {task.name} with args {args} of Fusion "
             f"Group with Tasks {str(group)}:\n"
         )
+        logger.debug(
+            f"Sending invocation request to Task {task.name} with the address {address}"
+        )
         try:
             response = requests.post(address, headers=header, json=args)
         except requests.RequestException as e:
