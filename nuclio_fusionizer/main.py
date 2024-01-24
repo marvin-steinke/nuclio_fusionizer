@@ -32,7 +32,7 @@ def main():
     mapper = Mapper(nuctl, fuser)
     api_server = ApiServer(nuctl, mapper)
     optimizer = StaticOptimizer(mapper, "config.json")
-    optimizer.run()
+    optimizer.start()
     api_server.run()
 
 

@@ -34,7 +34,8 @@ class Optimizer(ABC, threading.Thread):
         while not self.stop_event.is_set():
             self._sleep()
             new_setup = self._optimize()
-            self.mapper.update(new_setup)
+            if new_setup:
+                self.mapper.update(new_setup)
 
     def stop(self) -> None:
         """Sets the stop event to terminate the thread."""
@@ -108,9 +109,9 @@ class StaticOptimizer(Optimizer):
             self.time_stamp = None
             self.stop()
             return
-        next_time_stamp = time_stamps[index]
 
         # Determine sleep duration by substracting from current time stamp
+        next_time_stamp = time_stamps[index]
         sleep_dur = next_time_stamp - self.time_stamp
         self.time_stamp = next_time_stamp
         logger.debug(f"Optimizer thread is now sleeping for {sleep_dur}")
