@@ -34,12 +34,8 @@ class FusionizerAdapter(HTTPAdapter):
         self,
         tasks: dict[str, Callable],
         fusionizer_url: str,
-        pool_connections: int = 10,
-        pool_maxsize: int = 10,
-        max_retries: Retry | int | None = 0,
-        pool_block: bool = False,
     ) -> None:
-        super().__init__(pool_connections, pool_maxsize, max_retries, pool_block)
+        super().__init__()
         self.tasks = tasks
         self.fusionizer_url = fusionizer_url
 
@@ -103,8 +99,8 @@ class FusionizerAdapter(HTTPAdapter):
             response.status_code = status_code
             response._content = content
             return response
-        # If not, hanlde as a regular request
-        return super(FusionizerAdapter, self).send(request, **kwargs)
+        # If not, handle as a regular request
+        return super().send(request, **kwargs)
 
 
 class Dispatcher:
@@ -127,15 +123,13 @@ class Dispatcher:
             ValueError: If no value for the 'Fusionizer-Server-Address' field
                 was provided in the header.
         """
-        fusionizer_server_addr = self.event.headers.get(
-            "Fusionizer-Server-Address"
-        )
+        fusionizer_server_addr = self.event.headers.get("Fusionizer-Server-Address")
         if not fusionizer_server_addr:
             raise ValueError(
                 "No value for the 'Fusionizer-Server-Address' field was provided in "
                 "the Header."
             )
-        adapter = FusionizerAdapter(self.tasks, fusionizer_server_addr, self.context)
+        adapter = FusionizerAdapter(self.tasks, fusionizer_server_addr)
         # Mount the custom adapter globally
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
