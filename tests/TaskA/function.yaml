@@ -1,0 +1,11 @@
+apiVersion: nuclio.io/v1
+kind: NuclioFunction
+spec:
+  description: Tasks A
+  runtime: python
+  handler: main:handler
+  minReplicas: 1
+  maxReplicas: 1
+  build:
+    commands:
+      - pip install requests

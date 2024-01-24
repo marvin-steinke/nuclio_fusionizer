@@ -1,0 +1,3 @@
+#!/bin/bash
+
+zip TaskA.zip -r TaskA

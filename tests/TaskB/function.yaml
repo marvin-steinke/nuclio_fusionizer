@@ -1,0 +1,8 @@
+apiVersion: nuclio.io/v1
+kind: NuclioFunction
+spec:
+  description: Tasks B
+  runtime: python
+  handler: main:handler
+  minReplicas: 1
+  maxReplicas: 1
