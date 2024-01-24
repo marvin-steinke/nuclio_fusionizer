@@ -8,7 +8,11 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "-a",
         "--address",
-        help="Public or private address of the Nuclio Fusionizer server",
+        help=(
+            "Public or private address of the Nuclio Fusionizer server address, "
+            "available to deployed Tasks as HTTP header "
+            "'Fusionizer-Server-Address' to invoke other Tasks"
+        ),
         type=str,
         required=True,
     )
@@ -22,6 +26,13 @@ def create_parser() -> argparse.ArgumentParser:
         type=str,
         default=None,
     )
+    parser.add_argument(
+        "-c",
+        "--config",
+        help="Path to a static optimizers configuration file",
+        type=str,
+        default="config.json",
+    )
     return parser
 
 
@@ -31,7 +42,7 @@ def main():
     fuser = Fuser()
     mapper = Mapper(nuctl, fuser)
     api_server = ApiServer(nuctl, mapper)
-    optimizer = StaticOptimizer(mapper, "config.json")
+    optimizer = StaticOptimizer(mapper, args.config)
     optimizer.start()
     api_server.run()
 
