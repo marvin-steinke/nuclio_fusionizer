@@ -30,8 +30,6 @@ up their systems as needed.
 
 ![fusionizer](https://github.com/marvin-steinke/nuclio_fusionizer/assets/48684343/72ad1f9d-9ea2-4fce-a620-4d245649ef98)
 
-The server comprises several components working together to achieve its functionality:
-
 - **nuctl Interface (`nuclio_interface.py`)**: A Python abstraction layer for
 Nuclio's CLI tool `nuctl`, handling deployment, deletion, invocation, and
 information retrieval of Nuclio functions.
@@ -58,46 +56,81 @@ that changes setup based on a predefined schedule.
 intercepted and dispatched to the appropriate handlers within the fusion
 context.
 
+## Installation
+
+```bash
+pip install nuclio-fusionizer
+```
+
 ## Usage
 
-Set up your Tasks [as instructed by
-nuclio](https://docs.nuclio.io/en/stable/tasks/deploying-functions.html). To
-deploy a Task, you need to zip your Task files and then upload them via the API.
-Your Task files should be structured like this:
+### Server
 
+TODO
+
+### Deploying and Invoking Tasks
+
+Set up your Tasks [as instructed by
+nuclio](https://docs.nuclio.io/en/stable/tasks/deploying-functions.html) with
+the addition of the `requests_session` parameter in your handler function. This
+custom session will intercept any invcocation requests to other Tasks if they
+reside within the same nuclio function and invoke them locally. The address of
+the Fusionizer server is supplied in the event headers:
+
+```python
+import json
+
+def handler(context, event, requests_session):
+    fusionizer_address = event.headers["Fusionizer-Server-Address"]
+    # invoke other Task
+    url = f"http://{fusionizer_address}:8000/<other Task>"
+    headers = {"Content-Type": "application/json"}
+    data = {"value1": 5, "value2": 3}
+    response = requests_session.post(url, headers=headers, data=json.dumps(data))
+    return response.text
 ```
+Other Task:
+```python
+def handler(context, event, requests_session):
+    return event.body["value1"] + event.body["value2"]
+```
+
+ To deploy a Task, you need to zip your Task files and then upload them via the
+ API.  Your Task files should be structured like this:
+
+```bash
 .
-├── function.yaml
+├── function.yaml 
 ├── your_handler.py
 └── your_local_dependencies
 ```
 
-ZIP compress your Task files:
-```
+ZIP compress your Task files from within the Tasks dir:
+```bash
 zip task.zip -r .
 ```
 
 ### API
 1. To deploy a new Task or redeploy an existing one:
-```
+```bash
 curl -X PUT http://localhost:8000/<task_name> \
      -H "Content-Type: multipart/form-data" \
      -F "zip_file=@<task>.zip"
 ```
 
 2. To delete an existing Task:
-```
+```bash
 curl -X DELETE http://localhost:8000/<task_name>
 ```
 
 3. To get information about a Task:
-```
+```bash
 curl -X GET http://localhost:8000/<task_name>
 ```
 
 4. To invoke a Task:
-```
+```bash
 curl -X POST http://localhost:8000/<task_name> \
      -H "Content-Type: application/json" \
-     -d '{"arg1": "value1", "arg2": 2}'
+     -d '{"arg1": "value1", "arg2": 42}'
 ```
