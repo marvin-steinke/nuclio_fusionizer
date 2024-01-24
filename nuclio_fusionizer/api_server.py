@@ -31,13 +31,13 @@ class ApiServer:
             os.makedirs(self.task_dir)
 
         @self.app.exception_handler(HTTPException)
-        async def http_exception_handler(
+        def http_exception_handler(
             request: Request, exc: HTTPException
         ) -> PlainTextResponse:
             return PlainTextResponse(str(exc.detail), status_code=exc.status_code)
 
         @self.app.put("/{task_name}")  # (re)-deploy
-        async def deploy(
+        def deploy(
             task_name: str, zip_file: UploadFile = File(...)
         ) -> PlainTextResponse:
             """Deploys a new task or redeploys an existing one.
@@ -71,7 +71,7 @@ class ApiServer:
             return PlainTextResponse(f"Successfully deployed Task '{task_name}'")
 
         @self.app.delete("/{task_name}")
-        async def delete(task_name: str) -> PlainTextResponse:
+        def delete(task_name: str) -> PlainTextResponse:
             """Deletes an existing task.
 
             Args:
@@ -91,7 +91,7 @@ class ApiServer:
             return PlainTextResponse(f"Successfully deleted Task '{task_name}'")
 
         @self.app.get("/{task_name}")
-        async def get(task_name: str) -> PlainTextResponse:
+        def get(task_name: str) -> PlainTextResponse:
             """Retrieves information about a Task.
 
             Args:
@@ -124,7 +124,9 @@ class ApiServer:
             )
 
         @self.app.post("/{task_name}")
-        async def invoke(task_name: str, args: dict[str, Any] = {}) -> PlainTextResponse:
+        def invoke(
+            task_name: str, args: dict[str, Any] | None = None
+        ) -> PlainTextResponse:
             """Invokes a Task.
 
             Args:
