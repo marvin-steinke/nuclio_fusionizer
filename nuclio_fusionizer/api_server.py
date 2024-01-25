@@ -2,6 +2,7 @@ from fastapi import FastAPI, UploadFile, File, Request, HTTPException
 from fastapi.responses import PlainTextResponse
 from zipfile import ZipFile
 from typing import Any
+from threading import Lock
 import os
 import uvicorn
 import shutil
@@ -25,6 +26,7 @@ class ApiServer:
     def __init__(self, nuctl: Nuctl, mapper: Mapper) -> None:
         self.nuctl = nuctl
         self.mapper = mapper
+        self.mapper_lock = Lock()
         self.app = FastAPI()
         self.task_dir = "tasks"
         if not os.path.exists(self.task_dir):
@@ -64,7 +66,8 @@ class ApiServer:
             # Create Task and deploy it
             task = Task(task_name, dir_path=dest_dir)
             try:
-                self.mapper.deploy_single(task)
+                with self.mapper_lock:
+                    self.mapper.deploy_single(task)
             except Exception as e:
                 raise HTTPException(status_code=422, detail=str(e))
 
@@ -84,7 +87,8 @@ class ApiServer:
                 HTTPException if the Task to delete could not be found.
             """
             try:
-                self.mapper.delete(task_name)
+                with self.mapper_lock:
+                    self.mapper.delete(task_name)
             except Exception as e:
                 raise HTTPException(status_code=422, detail=str(e))
 
