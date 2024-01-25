@@ -1,18 +1,24 @@
 #!/bin/bash
 
-# ZIP Task A
+echo "ZIPping Task A..."
 cd TaskA;zip TaskA.zip -r .;mv TaskA.zip ..;cd ..
-# Deploy Task A
+echo "...done."
+
+echo "Deploying Task A..."
 curl -X PUT http://localhost:8000/taska \
      -H "Content-Type: multipart/form-data" \
      -F "zip_file=@TaskA.zip"                      
+echo -e "\n"
 
-# ZIP Task B
+echo "ZIPping Task B..."
 cd TaskB;zip TaskB.zip -r .;mv TaskB.zip ..;cd ..;
-# Deploy Task B
+echo "...done."
+
+echo "Deploying Task B..."
 curl -X PUT http://localhost:8000/taskb \
      -H "Content-Type: multipart/form-data" \
      -F "zip_file=@TaskB.zip"
+echo -e "\n"
 
 # Invoke Task A (Task A has no args)
 #curl -X POST http://localhost:8000/taska
