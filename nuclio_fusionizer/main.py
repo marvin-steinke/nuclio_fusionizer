@@ -1,4 +1,5 @@
 import argparse
+from loguru import logger
 
 from nuclio_fusionizer import Nuctl, Fuser, Mapper, ApiServer, StaticOptimizer
 
@@ -37,6 +38,7 @@ def create_parser() -> argparse.ArgumentParser:
 
 
 def main():
+    logger.add("logs.txt")
     args = create_parser().parse_args()
     nuctl = Nuctl(args.address, namespace=args.namespace, kubeconfig=args.kubeconfig)
     fuser = Fuser()
