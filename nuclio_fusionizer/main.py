@@ -9,9 +9,9 @@ def create_parser() -> argparse.ArgumentParser:
         "-a",
         "--address",
         help=(
-            "Public or private address of the Nuclio Fusionizer server address, "
-            "available to deployed Tasks as HTTP header "
-            "'Fusionizer-Server-Address' to invoke other Tasks"
+            "Private address of the Nuclio Fusionizer server, available to "
+            "deployed Tasks as HTTP header 'Fusionizer-Server-Address' to "
+            "invoke other Tasks"
         ),
         type=str,
         required=True,

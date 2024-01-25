@@ -1,8 +1,8 @@
 # Nuclio Fusionizer Server
 
 The Nuclio Fusionizer Server is a project that enables the fusion of specific
-Tasks into a single Nuclio Function. This function can then be deployed to the
-open-source serverless computing platform, Nuclio. 
+Tasks into a single Nuclio functions. These functions can then be deployed to
+the open-source serverless computing platform, [Nuclio](https://nuclio.io/). 
 
 The project is informed by the principles outlined in the [Fusionize++ paper by
 Schirmer et al.](https://arxiv.org/abs/2311.04875), which discusses the benefits
@@ -14,47 +14,47 @@ by fusing application code into an optimized multi-function composition.
 ## Key Features
 
 - **Fusion of Tasks**: Through Nuclio Fusionizer, different Tasks can be fused
-into a singular Nuclio function, thereby streamlining function calls and
+into singular Nuclio functions, thereby streamlining function calls and
 execution flow within an application.
 
 - **Elimination of Invocation Overhead, Cold starts, and Double Billing**:
 Because Tasks operate within the same memory, invocation overheads, cold starts
 and double billing associated with individual function calls are eliminated.
 
-- **Customized Optimization**: An additional feature of the Nuclio Fusionizer is
-the capability to customize the optimization process for the fusion Tasks with
-custom Optimizers, providing developers with the flexibility they require to set
-up their systems as needed.
+- **Customized Optimization**: You can customize the optimization process for
+the fusion Tasks with custom Optimizers, providing flexibility to test and
+compare multiple strategies.
 
 ## Architecture
 
 ![fusionizer](https://github.com/marvin-steinke/nuclio_fusionizer/assets/48684343/72ad1f9d-9ea2-4fce-a620-4d245649ef98)
 
-- **nuctl Interface (`nuclio_interface.py`)**: A Python abstraction layer for
-Nuclio's CLI tool `nuctl`, handling deployment, deletion, invocation, and
-information retrieval of Nuclio functions.
+- **FastApi Server (`api_server.py`)**: FastAPI based server that provides an
+HTTP interface for user interaction with the fusionizer system. It defines
+endpoints for Task operations and utilizes the `Mapper` and `Nuctl` objects.
+
+- **Task Manager/Mapper (`mapper.py`)**: Manages the representation and
+operations on Fusion Groups, facilitating the mapping between Tasks and their
+corresponding Fusion Groups.
 
 - **Task Fuser (`fuser.py`)**: Takes care of the fusion process, merging
 multiple Tasks into a single Nuclio function deployment. It combines Tasks into
 a Fusion Group, generates a unified configuration and creates a dispatch
 mechanism.
 
-- **Task Manager/Mapper (`mapper.py`)**: Manages the representation and
-operations on Fusion Groups, facilitating the mapping between Tasks and their
-corresponding fusion groups.
-
-- **FastApi Server (`api_server.py`)**: FastAPI based server that provides an HTTP
-interface for user interaction with the fusionizer system. It defines endpoints
-for Task operations and utilizes the `Mapper` and `Nuctl` objects.
-
 - **Optimizers (`optimizer.py`)**: Contains abstract and concrete classes for
 optimization strategies that periodically update the fusion setup based on
 various conditions or configurations. Implementation includes a static optimizer
 that changes setup based on a predefined schedule.
 
-- **Dispatcher (`dispatcher.py`)**: In the Nuclio Function, HTTP requests are
-intercepted and dispatched to the appropriate handlers within the fusion
-context.
+- **nuctl Interface (`nuclio_interface.py`)**: A Python abstraction layer for
+Nuclio's CLI tool `nuctl`, handling deployment, deletion, invocation, and
+information retrieval of Nuclio functions.
+
+- **Dispatcher (`dispatcher.py`)**: Deployed within Nuclio functions, the
+dispatcher routes invocation requests from the Fusionizer server to the
+appropiate Task. HTTP requests between Tasks within the same Nuclio function (≙
+Fusion Group) are intercepted and locally invoked.
 
 ## Installation
 
@@ -132,3 +132,43 @@ curl -X POST http://localhost:8000/<task_name> \
      -H "Content-Type: application/json" \
      -d '{"arg1": "value1", "arg2": 42}'
 ```
+
+## Custom Optimizers
+
+The `Optimizer` module in this project provides a flexible way to build and apply
+unique optimization strategies to Fusion Setups. To create your custom
+optimizer, you’ll need to subclass the `Optimizer` abstract class and implement
+its core methods.
+
+### Subclassing Optimizer
+
+- **Define Your Class**: Inherit from `Optimizer` and define your custom logic.
+
+- **Implement `_sleep()`**: Determine the wait time between optimization runs.
+
+- **Implement `_optimize()`**: Create your optimization algorithm to return the
+new setup.
+
+### Example: Using StaticOptimizer
+
+The `StaticOptimizer` class is a concrete implementation of the abstract
+`Optimizer`. It reads a JSON configuration and applies Fusion Groups at the
+designated times.
+
+```python
+from nuclio_fusionizer import Optimizer, Mapper
+
+class StaticOptimizer(Optimizer):
+    def __init__(self, mapper, config_file):
+        super().__init__(mapper)  # Initialize the base class
+        # Load configurations here
+
+    def _sleep(self):
+        # Sleep control logic here
+
+    def _optimize(self):
+        # Read the setup from a configuration and apply it
+```
+
+To use `StaticOptimizer`, instantiate it with the required `mapper` and path to
+the configuration file, then simply start its thread.
