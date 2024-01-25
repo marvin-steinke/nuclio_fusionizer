@@ -4,8 +4,8 @@ from urllib3.util.retry import Retry as Retry
 from urllib.parse import urlparse
 from requests.adapters import HTTPAdapter
 from requests.models import Response, PreparedRequest
-import json
 import requests
+import json
 import os
 
 
@@ -18,13 +18,9 @@ class FusionizerAdapter(HTTPAdapter):
     Args:
         tasks: A dictionary of Tasks that the client can call.
         fusionizer_url: The base URL for the Fusionizer service.
-        pool_connections: The number of connections to cache. Defaults to 10.
-        pool_maxsize: The maximum number of connections to save in the pool.
-            Defaults to 10.
-        max_retries: The number of maximum retries for the requests. Can either
-            be an integer, Retry object, or None. Defaults to 0.
-        pool_block: Whether the connection pool should block when no free
-            connections are available. Defaults to False.
+        context: Nuclio context to be passed on to a locally invoked function.
+        event: Nuclio event to be passed on to a locally invoked function.
+        session: Custom requests session with this adapter mounted.
 
     Methods:
         send: Sends a prepared request and returns the response.
@@ -34,10 +30,16 @@ class FusionizerAdapter(HTTPAdapter):
         self,
         tasks: dict[str, Callable],
         fusionizer_url: str,
+        nuclio_context: Any,
+        nuclio_event: Any,
+        requests_session: requests.Session,
     ) -> None:
         super().__init__()
         self.tasks = tasks
         self.fusionizer_url = fusionizer_url
+        self.nuclio_context = nuclio_context
+        self.nuclio_event = nuclio_event
+        self.requests_session = requests_session
 
     def send(self, request: PreparedRequest, **kwargs):
         """Sends a PreparedRequest.
@@ -85,16 +87,19 @@ class FusionizerAdapter(HTTPAdapter):
             and subaddrs in self.tasks
         ):  # -> invoke locally
             if not request.body:
-                raise ValueError("PreparedRequest object is missing body.")
+                raise ValueError("PreparedRequest object is missing a body.")
             response = Response()
-            # Check if body is json
             try:
-                kwargs = json.loads(request.body)
-                content = self.tasks[subaddrs](**kwargs).encode("utf-8")
+                self.nuclio_event.body = json.loads(request.body)
+                content = str(
+                    self.tasks[subaddrs](
+                        self.nuclio_context, self.nuclio_event, self.requests_session
+                    )
+                ).encode("utf-8")
                 status_code = 200
-            except ValueError:
+            except ValueError as e:
                 status_code = 400
-                content = b"Invalid JSON format"
+                content = str(e).encode("utf-8")
 
             response.status_code = status_code
             response._content = content
@@ -129,7 +134,9 @@ class Dispatcher:
                 "No value for the 'Fusionizer-Server-Address' field was provided in "
                 "the Header."
             )
-        adapter = FusionizerAdapter(self.tasks, fusionizer_server_addr)
+        adapter = FusionizerAdapter(
+            self.tasks, fusionizer_server_addr, self.context, self.event, self.session
+        )
         # Mount the custom adapter globally
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
