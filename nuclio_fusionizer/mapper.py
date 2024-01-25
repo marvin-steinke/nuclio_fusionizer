@@ -3,7 +3,6 @@ from loguru import logger
 from typing import TYPE_CHECKING
 from dataclasses import dataclass, field, asdict
 from copy import deepcopy
-from typing import Union
 import json
 
 if TYPE_CHECKING:
@@ -273,7 +272,7 @@ class Mapper:
             f"{self._setup_to_str(self._fusion_setup)}"  # type: ignore
         )
 
-    def group(self, task_name: str) -> Union[FusionGroup, None]:
+    def group(self, task_name: str) -> FusionGroup | None:
         """Returns the group in which the task is present.
 
         Args:
@@ -302,6 +301,13 @@ class Mapper:
             The ouptut from nuctl.
         """
         logger.debug(f"Starting deployment process of single Task '{str(task)}'")
+        group = self.group(str(task))
+        if group:
+            logger.info(
+                f"Task '{str(task)}' has already been deployed within Fusion "
+                f"Group {str(group)} -> delete and redeploy"
+            )
+            self.delete(str(task))
         group = FusionGroup()
         group.tasks.append(task)
         group.gen_name()
