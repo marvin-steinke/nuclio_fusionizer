@@ -97,11 +97,11 @@ class Nuctl:
             self._exec_cmd(command)
         except subprocess.CalledProcessError as e:
             nuctl_err = NuctlError(
-                f"Failed to deploy Fusion Group with Tasks {str(group)}", e
+                f"Failed to deploy Fusion Group {str(group)}", e
             )
             logger.error(str(nuctl_err))
             raise nuctl_err
-        logger.info(f"Successfully deployed Fusion Group with Tasks {str(group)}")
+        logger.info(f"Successfully deployed Fusion Group {str(group)}")
 
     def delete(self, group: FusionGroup) -> None:
         """Deletes a Fusion Group deployed as a Nuclio function.
@@ -117,11 +117,11 @@ class Nuctl:
             self._exec_cmd(command)
         except subprocess.CalledProcessError as e:
             nuctl_err = NuctlError(
-                f"Failed to delete Fusion Group with Tasks {str(group)}", e
+                f"Failed to delete Fusion Group {str(group)}", e
             )
             logger.error(str(nuctl_err))
             raise nuctl_err
-        logger.info(f"Successfully deleted Fusion Group with Tasks {str(group)}")
+        logger.info(f"Successfully deleted Fusion Group {str(group)}")
 
     def get(self, group: FusionGroup) -> dict:
         """Provides information about a Fusion Group deployed as a Nuclio function.
@@ -140,7 +140,7 @@ class Nuctl:
             result = self._exec_cmd(command)
         except subprocess.CalledProcessError as e:
             nuctl_err = NuctlError(
-                f"Failed to get information about Fusion Group with Tasks {str(group)}", e
+                f"Failed to get information about Fusion Group {str(group)}", e
             )
             logger.error(str(nuctl_err))
             raise nuctl_err
@@ -166,16 +166,16 @@ class Nuctl:
         # Create HTML header to specify Task to call
         header = {
             "Content-Type": "application/json",
-            "Task-Name": task.name,
+            "Task-Name": str(task),
             "Fusionizer-Server-Address": self.fusionizer_address
         }
 
         fail = (
-            f"Failed to invoke Task {task.name} with args {args} of Fusion "
-            f"Group with Tasks {str(group)}:\n"
+            f"Failed to invoke Task '{str(task)}' with args '{args}' of Fusion "
+            f"Group {str(group)}:\n"
         )
         logger.debug(
-            f"Sending invocation request to Task {task.name} with the address {address}"
+            f"Sending invocation request to Task '{str(task)}' with address {address}"
         )
         try:
             response = requests.post(address, headers=header, json=args)
@@ -186,7 +186,7 @@ class Nuctl:
             raise Exception(fail + response.text)
 
         logger.info(
-            f"Successfully invoked Task {task.name} with args {args} of Fusion "
-            f"Group with Tasks {str(group)}:\nResult: {response.text}"
+            f"Successfully invoked Task '{str(task)}' with args '{args}' of Fusion "
+            f"Group {str(group)}:\nResult: {response.text}"
         )
         return response.text

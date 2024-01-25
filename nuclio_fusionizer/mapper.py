@@ -36,7 +36,15 @@ class Task:
         """
         if not isinstance(other, Task):
             return NotImplemented
-        return self.name == other.name
+        return str(self) == str(other)
+
+    def __str__(self) -> str:
+        """String representation for a Task.
+
+        Returns:
+            The name of the Task.
+        """
+        return self.name
 
     def __hash__(self) -> int:
         """Hash method, uses the Tasks name to return hash value.
@@ -44,7 +52,7 @@ class Task:
         Returns:
             Integer hash value of the Tasks name.
         """
-        return hash(self.name)
+        return hash(str(self))
 
 
 @dataclass
@@ -89,7 +97,7 @@ class FusionGroup:
 
     def gen_name(self) -> None:
         """Generates the groups name based on names of the tasks."""
-        self.name = "".join(task.name for task in self.tasks)
+        self.name = "".join(str(task) for task in self.tasks)
 
     def __str__(self) -> str:
         """Returns a comma separated string of the names of all the tasks.
@@ -97,7 +105,7 @@ class FusionGroup:
         Return:
             The name string.
         """
-        return ", ".join(task.name for task in self.tasks)
+        return str([str(task) for task in self.tasks])
 
     def __hash__(self) -> int:
         """Hash method, uses the Fusion Group's name to return hash value.
@@ -164,7 +172,7 @@ class Mapper:
         """
         new_setup: list[FusionGroup] = []
         old_setup = self.get()
-        task_dict = {task.name: task for task in self.tasks(old_setup)}
+        task_dict = {str(task): task for task in self.tasks(old_setup)}
         for group_config in json_config:
             group = FusionGroup()
             for task_name in group_config:
@@ -197,6 +205,17 @@ class Mapper:
             return True
         return False
 
+    def _setup_to_str(self, setup: list[FusionGroup]) -> str:
+        """Converts a FusionSetup to a comma-separated string.
+
+        Args:
+            setup: The Fusion setup to be converted.
+
+        Returns:
+            A string representation of the setup, with groups separated by commas.
+        """
+        return f"[{", ".join([str(group) for group in setup])}]"
+
     def update(self, new_setup: list[list[str]] | list[FusionGroup]) -> None:
         """Updates the Fusion Setup with the new setup provided.
 
@@ -207,7 +226,7 @@ class Mapper:
         """
         logger.info(
             f"Received new Fusion Setup: {new_setup}. Current Fusion Setup:"
-            f"{self._fusion_setup}. Starting update process."
+            f"{self._setup_to_str(self._fusion_setup)}. Starting update process."
         )
         if self._is_listliststr(new_setup):
             new_setup = self.json_to_setup(new_setup)  # type: ignore
@@ -220,11 +239,20 @@ class Mapper:
             return
 
         intersection = set(new_setup) & set(self._fusion_setup)
-        logger.debug(f"The following Fusion Groups remain intact: {intersection}")
+        logger.debug(
+            "The following Fusion Groups remain intact: "
+            f"{self._setup_to_str(list(intersection))}"  # type: ignore
+        )
         to_deploy = set(new_setup) - intersection
-        logger.debug(f"The following new Fusion Groups are deployed: {to_deploy}")
+        logger.debug(
+            "The following new Fusion Groups are deployed: "
+            f"{self._setup_to_str(list(to_deploy))}"  # type: ignore
+        )
         to_delete = set(self._fusion_setup) - intersection  # type: ignore
-        logger.debug(f"The following new Fusion Groups are deleted: {to_deploy}")
+        logger.debug(
+            "The following Fusion Groups are deleted: "
+            f"{self._setup_to_str(list(to_delete))}"  # type: ignore
+        )
         # Deploy and delete
         for group in to_delete:
             try:
@@ -234,12 +262,16 @@ class Mapper:
                 pass
         for group in to_deploy:
             try:
+                self._fuser.fuse(group)  # type: ignore
                 self._nuctl.deploy(group)  # type: ignore
             except NuctlError:
                 # Failures are logged in Nuctl
                 pass
         self._fusion_setup = new_setup  # type: ignore
-        logger.info(f"Update process completed. New Fusion Setup: {self._fusion_setup}")
+        logger.info(
+            "Update process completed. New Fusion Setup: "
+            f"{self._setup_to_str(self._fusion_setup)}"  # type: ignore
+        )
 
     def group(self, task_name: str) -> Union[FusionGroup, None]:
         """Returns the group in which the task is present.
@@ -252,7 +284,7 @@ class Mapper:
         """
         for group in self._fusion_setup:
             for task in group.tasks:
-                if task.name == task_name:
+                if str(task) == task_name:
                     return group
         return None
 
@@ -269,7 +301,7 @@ class Mapper:
         Returns:
             The ouptut from nuctl.
         """
-        logger.debug(f"Starting deployment process of single Task {task.name}")
+        logger.debug(f"Starting deployment process of single Task '{str(task)}'")
         group = FusionGroup()
         group.tasks.append(task)
         group.gen_name()
@@ -295,19 +327,20 @@ class Mapper:
         Returns:
             The ooutput from nuctl.
         """
-        logger.debug(f"Starting deletion process of Task {task_name}")
+        logger.debug(f"Starting deletion process of Task '{task_name}'")
         # Get tasks group, make deepcopy
         old_group = self.group(task_name)
         if not old_group:
-            raise ValueError(f"Task {task_name} does not exist.")
-        logger.debug(f"Current Fusion Group of {task_name}: {str(old_group)}")
+            raise ValueError(f"Task '{task_name}' does not exist.")
+        logger.debug(f"Current Fusion Group of '{task_name}': {str(old_group)}")
 
         group = deepcopy(old_group)
         # Get task in group
         task = None
         for task_ in group.tasks:
-            if task_.name == task_name:
+            if str(task_) == task_name:
                 task = task_
+                break
         assert task is not None
         # Remove task from group
         group.tasks.remove(task)
@@ -318,8 +351,8 @@ class Mapper:
         if group.name:
             # Build and deploy the new group w/out task
             logger.debug(
-                f"Starting (re-)deployment process of Fusion Group {str(group)}"
-                f"without Task {task_name}"
+                f"Starting (re-)deployment process of Fusion Group {str(group)} "
+                f"without Task '{task_name}'"
             )
             self._fuser.fuse(group)
             self._nuctl.deploy(group)
@@ -329,8 +362,8 @@ class Mapper:
         # Remove old group from setup
         self._fusion_setup.remove(old_group)
         logger.debug(
-            f"State of Fusion Setup after deletion of Task {task_name}:"
-            f"{self._fusion_setup}"
+            f"State of Fusion Setup after deletion of Task '{task_name}':"
+            f"{self._setup_to_str(self._fusion_setup)}"
         )
 
         # and delete from nuclio

@@ -117,7 +117,7 @@ class ApiServer:
             other_groups = str(group) if len(group.tasks) > 1 else "None"
 
             return PlainTextResponse(
-                f"Task {task_name}:\n"
+                f"Task '{task_name}':\n"
                 f"Currently deployed with other Tasks: {other_groups}\n"
                 f"Status: {group_info["status"]["state"]}\n"
                 f"HTTP port: {group_info["status"]["httpPort"]}"
@@ -150,7 +150,7 @@ class ApiServer:
             # Find Task of group
             task = None
             for group_task in group.tasks:
-                if group_task.name == task_name:
+                if str(group_task) == task_name:
                     task = group_task
             assert task is not None
 

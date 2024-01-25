@@ -89,14 +89,14 @@ class Fuser:
                 handler = data["spec"]["handler"].split(":")
                 # Create and store the import statement for this task
                 import_str = (
-                    f"from {task.name}.{handler[0]} import {handler[1]} as {task.name}"
+                    f"from {str(task)}.{handler[0]} import {handler[1]} as {str(task)}"
                 )
                 import_dict[task] = import_str
 
         # Combine all import statements into a single string
         import_statements = "\n".join(import_dict.values())
         task_dict_str = ", ".join(
-            [f"'{task.name}': {task.name}" for task in group.tasks]
+            [f"'{str(task)}': {str(task)}" for task in group.tasks]
         )
         # Create handler script with import statements and handler function
         handler_str = f"""
@@ -130,14 +130,14 @@ def handler(context, event):
         os.makedirs(group_build_path)
         group.build_dir = group_build_path
         logger.debug(
-            f"Starting build process for Tasks {str(group)} in directory "
-            f"{group_build_path}"
+            f"Starting build process for Fusion Group {str(group)} in directory "
+            f"'{group_build_path}'"
         )
 
         copy_group = deepcopy(group)
         # Copy all tasks to build dir
         for task in copy_group.tasks:
-            new_dir_path = os.path.join(group_build_path, task.name)
+            new_dir_path = os.path.join(group_build_path, str(task))
             shutil.copytree(task.dir_path, new_dir_path)
             task.dir_path = new_dir_path
 
@@ -156,5 +156,5 @@ def handler(context, event):
 
         self._create_handler(copy_group)
 
-        logger.debug(f"Contents of {group_build_path}: {os.listdir(group_build_path)}")
+        logger.debug(f"Contents of '{group_build_path}': {os.listdir(group_build_path)}")
         logger.info(f"Successfully fused Tasks: {str(copy_group)}")
