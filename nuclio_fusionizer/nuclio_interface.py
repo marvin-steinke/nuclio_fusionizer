@@ -76,7 +76,8 @@ class Nuctl:
         Returns:
             The command output.
         """
-        command = ["sudo"] + command + self._gloabl_flags()
+        #command = ["sudo"] + command + self._gloabl_flags()
+        command += self._gloabl_flags()
         result = subprocess.run(command, check=True, capture_output=True)
         return result.stdout.decode("utf-8")
 
