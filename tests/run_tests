@@ -1,29 +1,125 @@
 #!/bin/bash
 
-if ! docker info > /dev/null 2>&1; then 
-    echo 'Docker is not running.' 
-    exit 1 
+function cleanup() {
+     echo -ne "\nCopying server logs from container... "
+     local out=$(docker cp $container_id:/app/logs.txt logs.txt)
+     if [ $? -eq 0 ]; then
+          echo "done."
+     else
+          echo "error: $out" >&2
+     fi
+
+     echo -n "Stopping container... "
+     local out=$(docker stop $container_id)
+     if [ $? -eq 0 ]; then
+          echo "done."
+     else
+          echo "error: $out" >&2
+          exit 1
+     fi
+}
+
+function deploy_task() {
+     # ZIP the task
+     echo -n "Compressing $1... "
+     cd $1
+     zip $1.zip -r . >/dev/null 2>&1
+     mv $1.zip ..
+     cd ..
+     echo "done."
+     # Deploy it
+     echo -n "Deploying $1... "
+     local status_code=$(
+          # Use lowercase task name
+          curl -X PUT http://localhost:8000/${1,,} \
+               -H "Content-Type: multipart/form-data" \
+               -F "zip_file=@$1.zip" \
+               -o /dev/null \
+               -s -w "%{http_code}"
+     )
+     if [ ! "$status_code" -eq 200 ]; then
+          echo "error."
+          cleanup
+          exit 1
+     fi
+     echo "done."
+     task_info $1
+}
+
+function task_info() {
+     local result=$(curl -s http://localhost:8000/${1,,} | sed 's/^/\t/')
+     echo -e "State of $1:\n$result"
+}
+
+function wait_until_fused() {
+     while true; do
+          local result=$(curl -s http://localhost:8000/${1,,})
+          local status_code=$(
+               curl http://localhost:8000/${1,,} \
+                    -o /dev/null \
+                    -s -w "%{http_code}"
+          )
+          if [ "$status_code" -eq 200 ] &&
+               ! echo "$result" | grep -q "Currently deployed with other Tasks: None"; then
+               break
+          fi
+          sleep 5
+     done
+}
+
+# Check if docker is running
+if ! docker info >/dev/null 2>&1; then
+     echo "Docker is not running. Please start docker before running tests."
+     exit 1
 fi
 
-echo "ZIPping Task A..."
-cd TaskA;zip TaskA.zip -r .;mv TaskA.zip ..;cd ..
-echo "...done."
+# Start Fusionizer server in docker container
+echo -n "Starting Fusionizer server... "
+container_id=$(
+     docker run \
+          -e ADDRESS=$(hostname -I | awk '{print $1}') \
+          -p 8000:8000 \
+          -v /var/run/docker.sock:/var/run/docker.sock \
+          -d nuclio-fusionizer-server
+)
+if [ $? -eq 0 ]; then
+     echo "done."
+else
+     echo "error: $container_id" >&2
+     exit 1
+fi
 
-echo "Deploying Task A..."
-curl -X PUT http://localhost:8000/taska \
-     -H "Content-Type: multipart/form-data" \
-     -F "zip_file=@TaskA.zip"                      
-echo -e "\n"
+# Copy config file
+echo -n "Copying config.json to server... "
+out=$(docker cp config.json $container_id:/app/config.json)
+if [ $? -eq 0 ]; then
+     echo "done."
+else
+     echo "error: $out" >&2
+     cleanup
+     exit 1
+fi
 
-echo "ZIPping Task B..."
-cd TaskB;zip TaskB.zip -r .;mv TaskB.zip ..;cd ..;
-echo "...done."
+# Wait for server to start
+echo -n "Waiting for server to start... "
+sleep 3
+echo -e "done.\n"
 
-echo "Deploying Task B..."
-curl -X PUT http://localhost:8000/taskb \
-     -H "Content-Type: multipart/form-data" \
-     -F "zip_file=@TaskB.zip"
-echo -e "\n"
+# Deploy Tasks
+deploy_task TaskA
+echo ""
+deploy_task TaskB
+echo ""
+
+# Wait for fusion
+echo -n "Waiting for Task A and B to be fused... "
+wait_until_fused TaskA
+echo -n "done. "
+task_info TaskA
 
 # Invoke Task A (Task A has no args)
-#curl -X POST http://localhost:8000/taska
+echo -n "Invoking Task A after fusion... "
+result=$(curl -s -X POST http://localhost:8000/taska)
+echo "done. Task A returns: $result"
+
+cleanup
