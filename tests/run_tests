@@ -1,5 +1,25 @@
 #!/bin/bash
 
+# Check if commands exists
+function check_command() {
+     if ! $1 --version &>/dev/null; then
+          echo "error: The required command '$1' is not installed. Please install '$1' before running tests." >&2
+          return 1
+     fi
+     return 0
+}
+
+check_command docker || exit 1
+check_command zip || exit 1
+check_command curl || exit 1
+check_command awk || exit 1
+
+# Check if docker is running
+if ! docker info >/dev/null 2>&1; then
+     echo "Docker is not running. Please start docker before running tests."
+     exit 1
+fi
+
 function cleanup() {
      echo -ne "\nCopying server logs from container... "
      local out=$(docker cp $container_id:/app/logs.txt logs.txt)
@@ -67,12 +87,6 @@ function wait_until_fused() {
      done
 }
 
-# Check if docker is running
-if ! docker info >/dev/null 2>&1; then
-     echo "Docker is not running. Please start docker before running tests."
-     exit 1
-fi
-
 # Start Fusionizer server in docker container
 echo -n "Starting Fusionizer server... "
 container_id=$(
@@ -123,3 +137,5 @@ result=$(curl -s -X POST http://localhost:8000/taska)
 echo "done. Task A returns: $result"
 
 cleanup
+
+#diff <(cut -d '|' -f 2- log1.txt) <(cut -d '|' -f 2- log2.txt)
