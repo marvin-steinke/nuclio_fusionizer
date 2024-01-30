@@ -67,21 +67,52 @@ function deploy_task() {
 }
 
 function task_info() {
-     local result=$(curl -s http://localhost:8000/${1,,} | sed 's/^/\t/')
-     echo -e "State of $1:\n$result"
+     local response=$(curl -s http://localhost:8000/${1,,} | sed 's/^/\t/')
+     echo -e "State of $1:\n$response"
+}
+
+function wait_until_available() {
+     while true; do
+          local response=$(curl -s http://localhost:8000/${1,,})
+          local status_code=$(
+               curl http://localhost:8000/${1,,} \
+                    -o /dev/null \
+                    -s -w "%{http_code}"
+          )
+          if [ "$status_code" -eq 200 ]; then
+               break
+          fi
+          sleep 5
+     done
 }
 
 function wait_until_fused() {
      while true; do
-          local result=$(curl -s http://localhost:8000/${1,,})
+          local response=$(curl -s http://localhost:8000/${1,,})
           local status_code=$(
                curl http://localhost:8000/${1,,} \
                     -o /dev/null \
                     -s -w "%{http_code}"
           )
           if [ "$status_code" -eq 200 ] &&
-               ! echo "$result" | grep -q "Currently deployed with other Tasks: None"; then
+               ! echo "$response" | grep -q "Currently deployed with other Tasks: None"; then
                break
+          fi
+          sleep 5
+     done
+}
+
+function wait_until() {
+     while true; do
+          local status_code=$(
+               curl http://localhost:8000/${1,,} \
+                    -o /dev/null \
+                    -s -w "%{http_code}"
+          )
+          if [ "$status_code" -eq 200 ]; then
+               [ $2 != "fused" ] && break
+               local response=$(curl -s http://localhost:8000/${1,,})
+               ! echo "$response" | grep -q "Currently deployed with other Tasks: None" && break
           fi
           sleep 5
      done
@@ -105,11 +136,11 @@ fi
 
 # Copy config file
 echo -n "Copying config.json to server... "
-out=$(docker cp config.json $container_id:/app/config.json)
+response=$(docker cp config.json $container_id:/app/config.json)
 if [ $? -eq 0 ]; then
      echo "done."
 else
-     echo "error: $out" >&2
+     echo "error: $response" >&2
      cleanup
      exit 1
 fi
@@ -120,22 +151,65 @@ sleep 3
 echo -e "done.\n"
 
 # Deploy Tasks
-deploy_task TaskA
+deploy_task "TaskA"
 echo ""
-deploy_task TaskB
+deploy_task "TaskB"
 echo ""
+
+# Invoke Task A before fusion (Task A has no args)
+echo -n "Invoking Task A before fusion (5+3)... "
+response=$(curl -s -X POST http://localhost:8000/taska)
+echo "done. Task A returns: $response"
 
 # Wait for fusion
 echo -n "Waiting for Task A and B to be fused... "
-wait_until_fused TaskA
+wait_until "TaskA" "fused"
 echo -n "done. "
-task_info TaskA
+task_info "TaskA"
 
-# Invoke Task A (Task A has no args)
-echo -n "Invoking Task A after fusion... "
-result=$(curl -s -X POST http://localhost:8000/taska)
-echo "done. Task A returns: $result"
+# Invoke Task A after fusion
+echo -n "Invoking Task A after fusion (5+3)... "
+response=$(curl -s -X POST http://localhost:8000/taska)
+echo -e "done. Task A returns: It's still $response\n"
+
+# Delete Task A
+echo -n "Deleting Task A... "
+response=$(curl -s -X DELETE http://localhost:8000/taska)
+echo -n "done. "
+task_info "TaskA"
+echo ""
+
+# Now check Task B. Since Task A was deleted, the Fusion Group has to be re-deployed
+echo -n "Waiting for redeployment of Fusion Group with Task B... "
+wait_until "TaskB" "available"
+echo -e "done. "
+task_info "TaskB"
+
+# Invoke Task B
+echo -n "Invoking Task B after re-deployment (4+8)... "
+response=$(
+     curl -s -X POST http://localhost:8000/taskb \
+          -H "Content-Type: application/json" \
+          -d '{"value1": 4, "value2": 8}'
+)
+echo -e "done. Task B returns: $response\n"
+
+# Delete Task A
+echo -n "Deleting Task B... "
+response=$(curl -s -X DELETE http://localhost:8000/taskb)
+echo -n "done. "
+task_info "TaskA"
 
 cleanup
 
-#diff <(cut -d '|' -f 2- log1.txt) <(cut -d '|' -f 2- log2.txt)
+# Compare test logs with reference logs, ignoring addresses and dates.
+echo -en "\nComparing test logs with reference logs... "
+result=$(
+     diff <(cut -d '|' -f 2- logs.txt | sed 's/http:\/\/[0-9.]*:[0-9]*//g') \
+          <(cut -d '|' -f 2- ref_logs.txt | sed 's/http:\/\/[0-9.]*:[0-9]*//g')
+)
+if [ -z "$result" ]; then
+     echo "done. No differences found"
+else
+     echo -e "warning. Differences found:\n$result"
+fi
