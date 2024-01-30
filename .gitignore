@@ -1,4 +1,5 @@
 # Project specific
+logs.txt
 fusion_build/
 tasks/
 *.zip
