@@ -42,3 +42,8 @@ dates to ensure that only the relevant differences are shown. You might still
 experience differences, even if all went well. This is likely due different
 server-internal ordering of the Tasks e.g. ['taska', 'taskb'] <-> ['taskb',
 'taska']. Check against the reference logs if in doubt.
+
+The `StaticOptimizer` used for the tests, only optimizes Fusion Groups at
+specific points in time. If the deployment of the Tasks takes too long because
+you are running MacOS, you need to increase this point in time. You know this is
+happening, when the tests are stuck waiting for Task A and B to be fused.
