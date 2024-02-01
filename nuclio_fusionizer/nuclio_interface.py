@@ -36,7 +36,7 @@ class Nuctl:
     def __init__(
         self,
         fusionizer_address: str,
-        namespace: str | None = None,
+        namespace: str | None = "nuclio",
         registry: str | None = None,
         kubeconfig: str | None = None,
         platform: str = "auto",
