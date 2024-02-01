@@ -21,9 +21,13 @@ RUN curl -s https://api.github.com/repos/nuclio/nuclio/releases/latest \
 	| wget -O nuctl -qi - && chmod +x nuctl
 RUN mv nuctl /bin/
 
-
 ENV PYTHONPATH /app/nuclio_fusionizer:$PYTHONPATH
 
-# Run command to start app when container launches with address param
+# Run command to start app when container launches with params
 # Also use exec so ctrl+c works
-CMD exec python ./nuclio_fusionizer/main.py -a "$ADDRESS"
+CMD exec python ./nuclio_fusionizer/main.py -a "$ADDRESS" \
+	$(PLATFORM:+-p "$PLATFORM") \
+	$(REGISTRY:+-r "$REGISTRY") \
+	$(NAMESPACE:+-n "$NAMESPACE") \
+	$(KUBECONFIG:+-k "$KUBECONFIG") \
+	$(CONFIG:+-c "$CONFIG")

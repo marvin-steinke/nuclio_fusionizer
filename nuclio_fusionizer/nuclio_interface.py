@@ -53,6 +53,8 @@ class Nuctl:
         self.registry = registry
         self.kubeconfig = kubeconfig
         self.platform = platform
+        if self.platform == "kube" and not self.registry:
+            self.registry = "localhost:5000"
 
     def _gloabl_flags(self) -> list[str]:
         """Generates and returns the global flags used for nuctl commands.
@@ -61,7 +63,7 @@ class Nuctl:
             The list of global flags for nuctl commands.
         """
         flags = []
-        for var in ["namespace", "registry", "kubeconfig", "platform"]:
+        for var in ["namespace", "kubeconfig", "platform"]:
             value = getattr(self, var)
             if value:
                 flags += [f"--{var}", value]
@@ -94,6 +96,8 @@ class Nuctl:
             "nuctl", "deploy", group.name,
             "--path", group.build_dir,
         ]
+        if self.registry:
+            command += ["--registry", self.registry]
         try:
             self._exec_cmd(command)
         except subprocess.CalledProcessError as e:

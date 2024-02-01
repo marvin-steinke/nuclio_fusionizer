@@ -18,7 +18,23 @@ def create_parser() -> argparse.ArgumentParser:
         required=True,
     )
     parser.add_argument(
-        "-n", "--namespace", help="Nuclio namespace", type=str, default=None
+        "-p",
+        "--platform",
+        help="The Nuclio platform to use, can be 'local', 'kube' or 'auto'. "
+        "Default is 'auto'",
+        type=str,
+        default="auto",
+    )
+    parser.add_argument(
+        "-r",
+        "--registry",
+        help="The Docker registry to use for function deployments. Defaults to "
+        "'localhost:5000' if the platform is 'kube'",
+        type=str,
+        default=None,
+    )
+    parser.add_argument(
+        "-n", "--namespace", help="Nuclio namespace", type=str, default="nuclio"
     )
     parser.add_argument(
         "-k",
@@ -40,7 +56,13 @@ def create_parser() -> argparse.ArgumentParser:
 def main():
     logger.add("logs.txt")
     args = create_parser().parse_args()
-    nuctl = Nuctl(args.address, namespace=args.namespace, kubeconfig=args.kubeconfig)
+    nuctl = Nuctl(
+        args.address,
+        namespace=args.namespace,
+        registry=args.registry,
+        kubeconfig=args.kubeconfig,
+        platform=args.platform,
+    )
     fuser = Fuser()
     mapper = Mapper(nuctl, fuser)
     api_server = ApiServer(nuctl, mapper)
