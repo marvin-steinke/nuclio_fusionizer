@@ -1,0 +1,70 @@
+#!/bin/bash
+
+# Unset the Docker environment in case it's still set
+eval $(minikube docker-env -u)
+
+# (Re)-start Minikube
+minikube stop
+minikube delete --all --purge
+# Docker socket will be passed down to pods -> add function-registry as insecure
+minikube start --insecure-registry "localhost:5000"
+
+# Set the environment to use Minikube's Docker daemon
+eval $(minikube docker-env)
+
+# Start function-registry
+docker run -d -p 5000:5000 --name function-registry registry:2
+
+# Install Nuclio w/ Helm
+minikube kubectl -- create namespace nuclio
+helm repo add nuclio https://nuclio.github.io/nuclio/charts
+helm repo update
+helm -n nuclio install nuclio \
+    --set registry.pushPullUrl=localhost:5000 \
+    --set dashboard.baseImagePullPolicy=Never \
+    nuclio/nuclio
+
+# Deploy nuclio-fusionizer to Minikube
+for i in role serviceaccount rolebinding pod; do
+    minikube kubectl -- apply -n nuclio -f $i.yaml
+done
+
+# Wait for the Nuclio dashboard to become ready
+sleep 5
+NUCLIO_DASHBOARD_POD_NAME=$(
+    minikube kubectl -- get pods \
+        -n nuclio \
+        -l nuclio.io/app=dashboard \
+        -o jsonpath="{.items[0].metadata.name}"
+)
+minikube kubectl -- wait \
+    -n nuclio \
+    --for=condition=ready \
+    --timeout=-1s \
+    pod $NUCLIO_DASHBOARD_POD_NAME
+
+# Wait for the nuclio-fusionizer pod to become ready
+sleep 5
+POD_NAME=$(
+    minikube kubectl -- get pods \
+        -n nuclio \
+        -l "app=nuclio-fusionizer" \
+        -o jsonpath="{.items[0].metadata.name}"
+)
+minikube kubectl -- wait \
+    -n nuclio \
+    --for=condition=ready \
+    --timeout=-1s \
+    pod $POD_NAME
+
+# Forward ports in the background
+minikube kubectl -- port-forward -n nuclio $POD_NAME 8000:8000 &
+PF1_PID=$!
+sleep 1
+minikube kubectl -- port-forward -n nuclio $NUCLIO_DASHBOARD_POD_NAME 8070:8070 &
+PF2_PID=$!
+
+# Use trap to clean up background processes when the script exits
+trap "kill $PF1_PID $PF2_PID" EXIT
+# Keep the script running until terminated
+wait $PF1_PID $PF2_PID

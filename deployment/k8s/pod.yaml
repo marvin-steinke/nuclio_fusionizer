@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nuclio-fusionizer
+  namespace: nuclio
+  labels:
+    app: nuclio-fusionizer
+spec:
+  serviceAccountName: nuctl-sa
+  containers:
+    - name: nuclio-fusionizer
+      image: ghcr.io/marvin-steinke/nuclio-fusionizer:latest
+      ports:
+        - containerPort: 8000
+      volumeMounts:
+        - name: docker-sock
+          mountPath: /var/run/docker.sock
+      env:
+        - name: ADDRESS
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: PLATFORM
+          value: "kube"
+  volumes:
+    - name: docker-sock
+      hostPath:
+        path: /var/run/docker.sock
