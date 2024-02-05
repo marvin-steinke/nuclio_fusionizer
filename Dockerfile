@@ -22,12 +22,6 @@ RUN curl -s https://api.github.com/repos/nuclio/nuclio/releases/latest \
 RUN mv nuctl /bin/
 
 ENV PYTHONPATH /app/nuclio_fusionizer:$PYTHONPATH
-
-# Run command to start app when container launches with params
-# Also use exec so ctrl+c works
-CMD exec python ./nuclio_fusionizer/main.py -a "$ADDRESS" \
-	$(PLATFORM:+-p "$PLATFORM") \
-	$(REGISTRY:+-r "$REGISTRY") \
-	$(NAMESPACE:+-n "$NAMESPACE") \
-	$(KUBECONFIG:+-k "$KUBECONFIG") \
-	$(CONFIG:+-c "$CONFIG")
+COPY ./deployment/docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT [ "/bin/bash", "/entrypoint.sh" ]
