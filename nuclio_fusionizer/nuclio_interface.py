@@ -97,7 +97,7 @@ class Nuctl:
             "--path", group.build_dir,
         ]
         if self.registry:
-            command += ["--registry", self.registry]
+            command += ["--registry", self.registry, "--run-registry", "localhost:5000"]
         try:
             self._exec_cmd(command)
         except subprocess.CalledProcessError as e:
@@ -167,6 +167,7 @@ class Nuctl:
             requests.RequestException if the http invocation fails.
         """
         # Get function address
+        logger.debug(f"Retrieving internal invocation url for Task '{str(task)}'")
         address = "http://" + self.get(group)["status"]["internalInvocationUrls"][0]
         # Create HTML header to specify Task to call
         header = {
