@@ -25,7 +25,7 @@ helm -n nuclio install nuclio \
     nuclio/nuclio
 
 # Deploy nuclio-fusionizer to Minikube
-for i in role serviceaccount rolebinding pod; do
+for i in role serviceaccount rolebinding config pod; do
     minikube kubectl -- apply -n nuclio -f $i.yaml
 done
 

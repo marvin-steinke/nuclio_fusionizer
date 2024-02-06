@@ -7,7 +7,6 @@ WORKDIR /app
 # Copy dependency and src contents into the container at /app
 COPY ./nuclio_fusionizer ./nuclio_fusionizer
 COPY ./requirements.txt .
-COPY ./tests/config.json .
 
 # Install docker cli
 RUN apt-get update && apt-get install -y docker.io
