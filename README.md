@@ -1,7 +1,7 @@
 # Nuclio Fusionizer Server
 
 The Nuclio Fusionizer Server is a project that enables the fusion of specific
-Tasks into a single Nuclio functions. These functions can then be deployed to
+FaaS Tasks into single Nuclio functions. These functions can then be deployed to
 the open-source serverless computing platform, [Nuclio](https://nuclio.io/). 
 
 The project is informed by the principles outlined in the [Fusionize++ paper by
@@ -59,14 +59,38 @@ Fusion Group) are intercepted and locally invoked.
 ## Installation
 
 ```bash
-pip install nuclio-fusionizer
+# Install nuctl https://nuclio.io/docs/latest/reference/nuctl/nuctl/
+curl -s https://api.github.com/repos/nuclio/nuclio/releases/latest \
+			| grep -i "browser_download_url.*nuctl.*$(uname)" \
+			| cut -d : -f 2,3 \
+			| tr -d \" \
+			| wget -O nuctl -qi - && chmod +x nuctl
+mv nuctl /bin/
+pip install .
 ```
 
 ## Usage
 
-### Server
+Run either directly:
+```bash
+nuclio-fusionizer -h
+```
+or use the Docker image and omit the installation:
 
-TODO
+```bash
+container_id=$(
+     docker run \
+          -e ADDRESS=$(hostname -I | awk '{print $1}') \
+          # Set all other optional args also as envs, see deployment/docker/entrypoint.sh
+          -p 8000:8000 \
+          -v /var/run/docker.sock:/var/run/docker.sock \
+          -d ghcr.io/marvin-steinke/nuclio-fusionizer:latest
+)
+
+if [ $? -eq 0 ]; then
+    # Copy config file
+    docker cp config.json $container_id:/app/config.json
+```
 
 ### Deploying and Invoking Tasks
 
@@ -133,6 +157,8 @@ curl -X POST http://localhost:8000/<task_name> \
      -d '{"arg1": "value1", "arg2": 42}'
 ```
 
+**<p align="center">- Take a look at the tests to see more detailed usage examples -</p>**
+
 ## Custom Optimizers
 
 The `Optimizer` module in this project provides a flexible way to build and apply
@@ -153,7 +179,7 @@ new setup.
 
 The `StaticOptimizer` class is a concrete implementation of the abstract
 `Optimizer`. It reads a JSON configuration and applies Fusion Groups at the
-designated times.
+designated times and is the default Optimizer used in the current release.
 
 ```python
 from nuclio_fusionizer import Optimizer, Mapper
