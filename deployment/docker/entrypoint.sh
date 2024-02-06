@@ -23,6 +23,9 @@ if [[ -n $CONFIG ]]; then
   ARGS+=" -c $CONFIG"
 fi
 
+# Wait a bit for the config file
+sleep 1
+
 # Run command to start app when container launches with params
 # Also use exec so ctrl+c works
 exec python ./nuclio_fusionizer/main.py $ARGS

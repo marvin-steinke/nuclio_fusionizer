@@ -125,7 +125,7 @@ container_id=$(
           -e ADDRESS=$(hostname -I | awk '{print $1}') \
           -p 8000:8000 \
           -v /var/run/docker.sock:/var/run/docker.sock \
-          -d nuclio-fusionizer-server
+          -d ghcr.io/marvin-steinke/nuclio-fusionizer:latest
 )
 if [ $? -eq 0 ]; then
      echo "done."
