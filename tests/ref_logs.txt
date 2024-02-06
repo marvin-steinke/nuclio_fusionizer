@@ -1,52 +1,54 @@
-2024-01-30 09:44:42.931 | INFO     | nuclio_fusionizer.optimizer:__init__:86 - Successfully loaded Fuion Setup from config file 'config.json'
-2024-01-30 09:44:45.457 | DEBUG    | nuclio_fusionizer.mapper:deploy_single:303 - Starting deployment process of single Task 'taska'
-2024-01-30 09:44:45.457 | DEBUG    | nuclio_fusionizer.fuser:fuse:132 - Starting build process for Fusion Group ['taska'] in directory 'fusion_build/taska'
-2024-01-30 09:44:45.460 | DEBUG    | nuclio_fusionizer.fuser:fuse:159 - Contents of 'fusion_build/taska': ['taska', 'function.yaml', 'dispatcher.py', 'handler.py']
-2024-01-30 09:44:45.460 | INFO     | nuclio_fusionizer.fuser:fuse:160 - Successfully fused Tasks: ['taska']
-2024-01-30 09:44:54.395 | INFO     | nuclio_fusionizer.nuclio_interface:deploy:105 - Successfully deployed Fusion Group ['taska']
-2024-01-30 09:44:54.540 | DEBUG    | nuclio_fusionizer.mapper:deploy_single:303 - Starting deployment process of single Task 'taskb'
-2024-01-30 09:44:54.540 | DEBUG    | nuclio_fusionizer.fuser:fuse:132 - Starting build process for Fusion Group ['taskb'] in directory 'fusion_build/taskb'
-2024-01-30 09:44:54.543 | DEBUG    | nuclio_fusionizer.fuser:fuse:159 - Contents of 'fusion_build/taskb': ['taskb', 'function.yaml', 'dispatcher.py', 'handler.py']
-2024-01-30 09:44:54.543 | INFO     | nuclio_fusionizer.fuser:fuse:160 - Successfully fused Tasks: ['taskb']
-2024-01-30 09:45:03.327 | INFO     | nuclio_fusionizer.nuclio_interface:deploy:105 - Successfully deployed Fusion Group ['taskb']
-2024-01-30 09:45:03.618 | DEBUG    | nuclio_fusionizer.nuclio_interface:invoke:178 - Sending invocation request to Task 'taska' with address http://172.17.0.5:8080
-2024-01-30 09:45:03.766 | DEBUG    | nuclio_fusionizer.nuclio_interface:invoke:178 - Sending invocation request to Task 'taskb' with address http://172.17.0.6:8080
-2024-01-30 09:45:03.768 | INFO     | nuclio_fusionizer.nuclio_interface:invoke:189 - Successfully invoked Task 'taskb' with args '{'value1': 5, 'value2': 3}' of Fusion Group ['taskb']:
+2024-02-06 09:47:53.467 | INFO     | nuclio_fusionizer.optimizer:__init__:86 - Successfully loaded Fuion Setup from config file 'config.json'
+2024-02-06 09:47:54.975 | DEBUG    | nuclio_fusionizer.mapper:deploy_single:303 - Starting deployment process of single Task 'taska'
+2024-02-06 09:47:54.975 | DEBUG    | nuclio_fusionizer.fuser:fuse:132 - Starting build process for Fusion Group ['taska'] in directory 'fusion_build/taska'
+2024-02-06 09:47:54.978 | DEBUG    | nuclio_fusionizer.fuser:fuse:159 - Contents of 'fusion_build/taska': ['taska', 'function.yaml', 'dispatcher.py', 'handler.py']
+2024-02-06 09:47:54.978 | INFO     | nuclio_fusionizer.fuser:fuse:160 - Successfully fused Tasks: ['taska']
+2024-02-06 09:48:03.664 | INFO     | nuclio_fusionizer.nuclio_interface:deploy:109 - Successfully deployed Fusion Group ['taska']
+2024-02-06 09:48:03.807 | DEBUG    | nuclio_fusionizer.mapper:deploy_single:303 - Starting deployment process of single Task 'taskb'
+2024-02-06 09:48:03.807 | DEBUG    | nuclio_fusionizer.fuser:fuse:132 - Starting build process for Fusion Group ['taskb'] in directory 'fusion_build/taskb'
+2024-02-06 09:48:03.810 | DEBUG    | nuclio_fusionizer.fuser:fuse:159 - Contents of 'fusion_build/taskb': ['taskb', 'function.yaml', 'dispatcher.py', 'handler.py']
+2024-02-06 09:48:03.810 | INFO     | nuclio_fusionizer.fuser:fuse:160 - Successfully fused Tasks: ['taskb']
+2024-02-06 09:48:12.383 | INFO     | nuclio_fusionizer.nuclio_interface:deploy:109 - Successfully deployed Fusion Group ['taskb']
+2024-02-06 09:48:12.537 | DEBUG    | nuclio_fusionizer.nuclio_interface:invoke:170 - Retrieving internal invocation url for Task 'taska'
+2024-02-06 09:48:12.665 | DEBUG    | nuclio_fusionizer.nuclio_interface:invoke:183 - Sending invocation request to Task 'taska' with address http://172.17.0.4:8080
+2024-02-06 09:48:12.670 | DEBUG    | nuclio_fusionizer.nuclio_interface:invoke:170 - Retrieving internal invocation url for Task 'taskb'
+2024-02-06 09:48:12.816 | DEBUG    | nuclio_fusionizer.nuclio_interface:invoke:183 - Sending invocation request to Task 'taskb' with address http://172.17.0.5:8080
+2024-02-06 09:48:12.818 | INFO     | nuclio_fusionizer.nuclio_interface:invoke:194 - Successfully invoked Task 'taskb' with args '{'value1': 5, 'value2': 3}' of Fusion Group ['taskb']:
 Result: 8
-2024-01-30 09:45:03.769 | INFO     | nuclio_fusionizer.nuclio_interface:invoke:189 - Successfully invoked Task 'taska' with args 'None' of Fusion Group ['taska']:
+2024-02-06 09:48:12.820 | INFO     | nuclio_fusionizer.nuclio_interface:invoke:194 - Successfully invoked Task 'taska' with args 'None' of Fusion Group ['taska']:
 Result: 8
-2024-01-30 09:45:22.931 | INFO     | nuclio_fusionizer.optimizer:_optimize:128 - Starting optimization process at time 40
-2024-01-30 09:45:22.932 | INFO     | nuclio_fusionizer.mapper:update:226 - Received new Fusion Setup: [['taska', 'taskb']]. Current Fusion Setup:[['taska'], ['taskb']]. Starting update process.
-2024-01-30 09:45:22.932 | DEBUG    | nuclio_fusionizer.mapper:update:241 - The following Fusion Groups remain intact: []
-2024-01-30 09:45:22.932 | DEBUG    | nuclio_fusionizer.mapper:update:246 - The following new Fusion Groups are deployed: [['taska', 'taskb']]
-2024-01-30 09:45:22.932 | DEBUG    | nuclio_fusionizer.mapper:update:251 - The following Fusion Groups are deleted: [['taska'], ['taskb']]
-2024-01-30 09:45:23.555 | INFO     | nuclio_fusionizer.nuclio_interface:delete:125 - Successfully deleted Fusion Group ['taska']
-2024-01-30 09:45:24.141 | INFO     | nuclio_fusionizer.nuclio_interface:delete:125 - Successfully deleted Fusion Group ['taskb']
-2024-01-30 09:45:24.142 | DEBUG    | nuclio_fusionizer.fuser:fuse:132 - Starting build process for Fusion Group ['taska', 'taskb'] in directory 'fusion_build/taskataskb'
-2024-01-30 09:45:24.145 | DEBUG    | nuclio_fusionizer.fuser:fuse:159 - Contents of 'fusion_build/taskataskb': ['taska', 'taskb', 'function.yaml', 'dispatcher.py', 'handler.py']
-2024-01-30 09:45:24.145 | INFO     | nuclio_fusionizer.fuser:fuse:160 - Successfully fused Tasks: ['taska', 'taskb']
-2024-01-30 09:45:25.069 | ERROR    | nuclio_fusionizer.nuclio_interface:get:146 - Failed to get information about Fusion Group ['taska']:
+2024-02-06 09:48:33.468 | INFO     | nuclio_fusionizer.optimizer:_optimize:128 - Starting optimization process at time 40
+2024-02-06 09:48:33.468 | INFO     | nuclio_fusionizer.mapper:update:226 - Received new Fusion Setup: [['taska', 'taskb']]. Current Fusion Setup:[['taska'], ['taskb']]. Starting update process.
+2024-02-06 09:48:33.468 | DEBUG    | nuclio_fusionizer.mapper:update:241 - The following Fusion Groups remain intact: []
+2024-02-06 09:48:33.468 | DEBUG    | nuclio_fusionizer.mapper:update:246 - The following new Fusion Groups are deployed: [['taska', 'taskb']]
+2024-02-06 09:48:33.469 | DEBUG    | nuclio_fusionizer.mapper:update:251 - The following Fusion Groups are deleted: [['taskb'], ['taska']]
+2024-02-06 09:48:34.163 | INFO     | nuclio_fusionizer.nuclio_interface:delete:129 - Successfully deleted Fusion Group ['taskb']
+2024-02-06 09:48:34.761 | INFO     | nuclio_fusionizer.nuclio_interface:delete:129 - Successfully deleted Fusion Group ['taska']
+2024-02-06 09:48:34.761 | DEBUG    | nuclio_fusionizer.fuser:fuse:132 - Starting build process for Fusion Group ['taska', 'taskb'] in directory 'fusion_build/taskataskb'
+2024-02-06 09:48:34.765 | DEBUG    | nuclio_fusionizer.fuser:fuse:159 - Contents of 'fusion_build/taskataskb': ['taska', 'taskb', 'function.yaml', 'dispatcher.py', 'handler.py']
+2024-02-06 09:48:34.765 | INFO     | nuclio_fusionizer.fuser:fuse:160 - Successfully fused Tasks: ['taska', 'taskb']
+2024-02-06 09:48:39.409 | ERROR    | nuclio_fusionizer.nuclio_interface:get:150 - Failed to get information about Fusion Group ['taska']:
 
-2024-01-30 09:45:30.218 | ERROR    | nuclio_fusionizer.nuclio_interface:get:146 - Failed to get information about Fusion Group ['taska']:
-
-2024-01-30 09:45:32.453 | INFO     | nuclio_fusionizer.nuclio_interface:deploy:105 - Successfully deployed Fusion Group ['taska', 'taskb']
-2024-01-30 09:45:32.453 | INFO     | nuclio_fusionizer.mapper:update:270 - Update process completed. New Fusion Setup: [['taska', 'taskb']]
-2024-01-30 09:45:35.793 | DEBUG    | nuclio_fusionizer.nuclio_interface:invoke:178 - Sending invocation request to Task 'taska' with address http://172.17.0.5:8080
-2024-01-30 09:45:35.797 | INFO     | nuclio_fusionizer.nuclio_interface:invoke:189 - Successfully invoked Task 'taska' with args 'None' of Fusion Group ['taska', 'taskb']:
+2024-02-06 09:48:43.375 | INFO     | nuclio_fusionizer.nuclio_interface:deploy:109 - Successfully deployed Fusion Group ['taska', 'taskb']
+2024-02-06 09:48:43.376 | INFO     | nuclio_fusionizer.mapper:update:270 - Update process completed. New Fusion Setup: [['taska', 'taskb']]
+2024-02-06 09:48:44.873 | DEBUG    | nuclio_fusionizer.nuclio_interface:invoke:170 - Retrieving internal invocation url for Task 'taska'
+2024-02-06 09:48:45.029 | DEBUG    | nuclio_fusionizer.nuclio_interface:invoke:183 - Sending invocation request to Task 'taska' with address http://172.17.0.5:8080
+2024-02-06 09:48:45.032 | INFO     | nuclio_fusionizer.nuclio_interface:invoke:194 - Successfully invoked Task 'taska' with args 'None' of Fusion Group ['taska', 'taskb']:
 Result: 8
-2024-01-30 09:45:35.801 | DEBUG    | nuclio_fusionizer.mapper:delete:336 - Starting deletion process of Task 'taska'
-2024-01-30 09:45:35.801 | DEBUG    | nuclio_fusionizer.mapper:delete:341 - Current Fusion Group of 'taska': ['taska', 'taskb']
-2024-01-30 09:45:35.802 | DEBUG    | nuclio_fusionizer.mapper:delete:359 - Starting (re-)deployment process of Fusion Group ['taskb'] without Task 'taska'
-2024-01-30 09:45:35.802 | DEBUG    | nuclio_fusionizer.fuser:fuse:132 - Starting build process for Fusion Group ['taskb'] in directory 'fusion_build/taskb'
-2024-01-30 09:45:35.804 | DEBUG    | nuclio_fusionizer.fuser:fuse:159 - Contents of 'fusion_build/taskb': ['taskb', 'function.yaml', 'dispatcher.py', 'handler.py']
-2024-01-30 09:45:35.805 | INFO     | nuclio_fusionizer.fuser:fuse:160 - Successfully fused Tasks: ['taskb']
-2024-01-30 09:45:44.379 | INFO     | nuclio_fusionizer.nuclio_interface:deploy:105 - Successfully deployed Fusion Group ['taskb']
-2024-01-30 09:45:44.379 | DEBUG    | nuclio_fusionizer.mapper:delete:370 - State of Fusion Setup after deletion of Task 'taska':[['taskb']]
-2024-01-30 09:45:44.982 | INFO     | nuclio_fusionizer.nuclio_interface:delete:125 - Successfully deleted Fusion Group ['taska', 'taskb']
-2024-01-30 09:45:45.424 | DEBUG    | nuclio_fusionizer.nuclio_interface:invoke:178 - Sending invocation request to Task 'taskb' with address http://172.17.0.6:8080
-2024-01-30 09:45:45.426 | INFO     | nuclio_fusionizer.nuclio_interface:invoke:189 - Successfully invoked Task 'taskb' with args '{'value1': 4, 'value2': 8}' of Fusion Group ['taskb']:
+2024-02-06 09:48:45.037 | DEBUG    | nuclio_fusionizer.mapper:delete:336 - Starting deletion process of Task 'taska'
+2024-02-06 09:48:45.037 | DEBUG    | nuclio_fusionizer.mapper:delete:341 - Current Fusion Group of 'taska': ['taska', 'taskb']
+2024-02-06 09:48:45.037 | DEBUG    | nuclio_fusionizer.mapper:delete:359 - Starting (re-)deployment process of Fusion Group ['taskb'] without Task 'taska'
+2024-02-06 09:48:45.038 | DEBUG    | nuclio_fusionizer.fuser:fuse:132 - Starting build process for Fusion Group ['taskb'] in directory 'fusion_build/taskb'
+2024-02-06 09:48:45.040 | DEBUG    | nuclio_fusionizer.fuser:fuse:159 - Contents of 'fusion_build/taskb': ['taskb', 'function.yaml', 'dispatcher.py', 'handler.py']
+2024-02-06 09:48:45.040 | INFO     | nuclio_fusionizer.fuser:fuse:160 - Successfully fused Tasks: ['taskb']
+2024-02-06 09:48:55.723 | INFO     | nuclio_fusionizer.nuclio_interface:deploy:109 - Successfully deployed Fusion Group ['taskb']
+2024-02-06 09:48:55.723 | DEBUG    | nuclio_fusionizer.mapper:delete:370 - State of Fusion Setup after deletion of Task 'taska':[['taskb']]
+2024-02-06 09:48:57.344 | INFO     | nuclio_fusionizer.nuclio_interface:delete:129 - Successfully deleted Fusion Group ['taska', 'taskb']
+2024-02-06 09:48:57.657 | DEBUG    | nuclio_fusionizer.nuclio_interface:invoke:170 - Retrieving internal invocation url for Task 'taskb'
+2024-02-06 09:48:57.801 | DEBUG    | nuclio_fusionizer.nuclio_interface:invoke:183 - Sending invocation request to Task 'taskb' with address http://172.17.0.4:8080
+2024-02-06 09:48:57.803 | INFO     | nuclio_fusionizer.nuclio_interface:invoke:194 - Successfully invoked Task 'taskb' with args '{'value1': 4, 'value2': 8}' of Fusion Group ['taskb']:
 Result: 12
-2024-01-30 09:45:45.430 | DEBUG    | nuclio_fusionizer.mapper:delete:336 - Starting deletion process of Task 'taskb'
-2024-01-30 09:45:45.430 | DEBUG    | nuclio_fusionizer.mapper:delete:341 - Current Fusion Group of 'taskb': ['taskb']
-2024-01-30 09:45:45.430 | DEBUG    | nuclio_fusionizer.mapper:delete:370 - State of Fusion Setup after deletion of Task 'taskb':[]
-2024-01-30 09:45:45.991 | INFO     | nuclio_fusionizer.nuclio_interface:delete:125 - Successfully deleted Fusion Group ['taskb']
+2024-02-06 09:48:57.807 | DEBUG    | nuclio_fusionizer.mapper:delete:336 - Starting deletion process of Task 'taskb'
+2024-02-06 09:48:57.807 | DEBUG    | nuclio_fusionizer.mapper:delete:341 - Current Fusion Group of 'taskb': ['taskb']
+2024-02-06 09:48:57.808 | DEBUG    | nuclio_fusionizer.mapper:delete:370 - State of Fusion Setup after deletion of Task 'taskb':[]
+2024-02-06 09:48:59.987 | INFO     | nuclio_fusionizer.nuclio_interface:delete:129 - Successfully deleted Fusion Group ['taskb']
