@@ -1,0 +1,9 @@
+apiVersion: nuclio.io/v1
+kind: NuclioFunction
+spec:
+  description: Entrypoint task is invoked with a target value and invokes the addition task until the target value is reached.
+  runtime: python
+  handler: main:handler
+  build:
+    commands:
+      - pip install requests

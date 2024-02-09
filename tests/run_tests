@@ -1,122 +1,12 @@
 #!/bin/bash
 
-# Check if commands exists
-function check_command() {
-     if ! $1 --version &>/dev/null; then
-          echo "error: The required command '$1' is not installed. Please install '$1' before running tests." >&2
-          return 1
-     fi
-     return 0
-}
-
-check_command docker || exit 1
-check_command zip || exit 1
-check_command curl || exit 1
-check_command awk || exit 1
+source lib
 
 # Check if docker is running
 if ! docker info >/dev/null 2>&1; then
      echo "Docker is not running. Please start docker before running tests."
      exit 1
 fi
-
-function cleanup() {
-     echo -ne "\nCopying server logs from container... "
-     local out=$(docker cp $container_id:/app/logs.txt logs.txt)
-     if [ $? -eq 0 ]; then
-          echo "done."
-     else
-          echo "error: $out" >&2
-     fi
-
-     echo -n "Stopping container... "
-     local out=$(docker stop $container_id)
-     if [ $? -eq 0 ]; then
-          echo "done."
-     else
-          echo "error: $out" >&2
-          exit 1
-     fi
-}
-
-function deploy_task() {
-     # ZIP the task
-     echo -n "Compressing $1... "
-     cd $1
-     zip $1.zip -r . >/dev/null 2>&1
-     mv $1.zip ..
-     cd ..
-     echo "done."
-     # Deploy it
-     echo -n "Deploying $1... "
-     local status_code=$(
-          # Use lowercase task name
-          curl -X PUT http://localhost:8000/${1,,} \
-               -H "Content-Type: multipart/form-data" \
-               -F "zip_file=@$1.zip" \
-               -o /dev/null \
-               -s -w "%{http_code}"
-     )
-     if [ ! "$status_code" -eq 200 ]; then
-          echo "error."
-          cleanup
-          exit 1
-     fi
-     echo "done."
-     task_info $1
-}
-
-function task_info() {
-     local response=$(curl -s http://localhost:8000/${1,,} | sed 's/^/\t/')
-     echo -e "State of $1:\n$response"
-}
-
-function wait_until_available() {
-     while true; do
-          local response=$(curl -s http://localhost:8000/${1,,})
-          local status_code=$(
-               curl http://localhost:8000/${1,,} \
-                    -o /dev/null \
-                    -s -w "%{http_code}"
-          )
-          if [ "$status_code" -eq 200 ]; then
-               break
-          fi
-          sleep 5
-     done
-}
-
-function wait_until_fused() {
-     while true; do
-          local response=$(curl -s http://localhost:8000/${1,,})
-          local status_code=$(
-               curl http://localhost:8000/${1,,} \
-                    -o /dev/null \
-                    -s -w "%{http_code}"
-          )
-          if [ "$status_code" -eq 200 ] &&
-               ! echo "$response" | grep -q "Currently deployed with other Tasks: None"; then
-               break
-          fi
-          sleep 5
-     done
-}
-
-function wait_until() {
-     while true; do
-          local status_code=$(
-               curl http://localhost:8000/${1,,} \
-                    -o /dev/null \
-                    -s -w "%{http_code}"
-          )
-          if [ "$status_code" -eq 200 ]; then
-               [ $2 != "fused" ] && break
-               local response=$(curl -s http://localhost:8000/${1,,})
-               ! echo "$response" | grep -q "Currently deployed with other Tasks: None" && break
-          fi
-          sleep 5
-     done
-}
 
 # Start Fusionizer server in docker container
 echo -n "Starting Fusionizer server... "
@@ -147,7 +37,7 @@ fi
 
 # Wait for server to start
 echo -n "Waiting for server to start... "
-sleep 3
+sleep 5
 echo -e "done.\n"
 
 # Deploy Tasks

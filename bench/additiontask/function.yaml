@@ -1,0 +1,9 @@
+apiVersion: nuclio.io/v1
+kind: NuclioFunction
+spec:
+  description: Adds 1 to a given number and returns the result.
+  runtime: python
+  handler: main:handler
+  build:
+    commands:
+      - pip install requests

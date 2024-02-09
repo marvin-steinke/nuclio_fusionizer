@@ -175,4 +175,6 @@ class ApiServer:
         """
         if not workers:
             workers = 2 * cpu_count() + 1
-        uvicorn.run(self.app, host="0.0.0.0", port=8000, workers=workers)
+        uvicorn.run(
+            "api_server:ApiServer().app", host="0.0.0.0", port=8000, workers=workers
+        )

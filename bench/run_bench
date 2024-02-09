@@ -1,0 +1,13 @@
+#!/bin/bash
+
+source ../tests/lib
+
+deploy_task "entrytask"
+echo ""
+deploy_task "additiontask"
+
+wait_until "entrytask" "fused"
+
+curl -s -X POST http://localhost:8000/entrytask \
+    -H "Content-Type: application/json" \
+    -d '{"value": 1000}'
