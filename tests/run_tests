@@ -37,7 +37,7 @@ fi
 
 # Wait for server to start
 echo -n "Waiting for server to start... "
-sleep 5
+sleep 3
 echo -e "done.\n"
 
 # Deploy Tasks
