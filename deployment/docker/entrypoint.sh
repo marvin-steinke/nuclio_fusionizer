@@ -22,6 +22,9 @@ fi
 if [[ -n $CONFIG ]]; then
   ARGS+=" -c $CONFIG"
 fi
+if [[ -n $WORKERS ]]; then
+  ARGS+=" -w $WORKERS"
+fi
 
 # Wait a bit for the config file
 sleep 1

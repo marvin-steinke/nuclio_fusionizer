@@ -50,6 +50,13 @@ def create_parser() -> argparse.ArgumentParser:
         type=str,
         default="config.json",
     )
+    parser.add_argument(
+        "-w",
+        "--workers",
+        help="Number of Uvivorn workers. Defaults to 2 x number_of_cores + 1",
+        type=int,
+        default=None,
+    )
     return parser
 
 
@@ -68,7 +75,7 @@ def main():
     api_server = ApiServer(nuctl, mapper)
     optimizer = StaticOptimizer(mapper, args.config)
     optimizer.start()
-    api_server.run()
+    api_server.run(args.workers)
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@ from fastapi.responses import PlainTextResponse
 from zipfile import ZipFile
 from typing import Any
 from threading import Lock
+from multiprocessing import cpu_count
 import os
 import uvicorn
 import shutil
@@ -166,6 +167,12 @@ class ApiServer:
 
             return PlainTextResponse(result)
 
-    def run(self):
-        """Starts the Uvicorn server for handling HTTP requests."""
-        uvicorn.run(self.app, host="0.0.0.0", port=8000)
+    def run(self, workers: int | None = None) -> None:
+        """Starts the Uvicorn server for handling HTTP requests.
+
+        Args:
+            workers: Number of Uvicorn workers. Defaults to 2 x cpu count + 1.
+        """
+        if not workers:
+            workers = 2 * cpu_count() + 1
+        uvicorn.run(self.app, host="0.0.0.0", port=8000, workers=workers)
