@@ -123,8 +123,7 @@ class ApiServer:
             return PlainTextResponse(
                 f"Task '{task_name}':\n"
                 f"Currently deployed with other Tasks: {other_groups}\n"
-                f"Status: {group_info["status"]["state"]}\n"
-                f"HTTP port: {group_info["status"]["httpPort"]}"
+                f"Status: {group_info["status"]["state"]}"
             )
 
         @self.app.post("/{task_name}")

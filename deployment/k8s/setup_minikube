@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Usage: ./setup_minikube <path-to-fusionizer-config>
+
 # Unset the Docker environment in case it's still set
 eval $(minikube docker-env -u)
 
@@ -25,7 +27,8 @@ helm -n nuclio install nuclio \
     nuclio/nuclio
 
 # Deploy nuclio-fusionizer to Minikube
-for i in role serviceaccount rolebinding config pod; do
+minikube kubectl -- create configmap -n nuclio fusionizer-config --from-file="$1"
+for i in role serviceaccount rolebinding pod; do
     minikube kubectl -- apply -n nuclio -f $i.yaml
 done
 

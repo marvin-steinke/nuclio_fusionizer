@@ -1,4 +1,4 @@
-# Usage: docker run -e ADDRESS=<internal-address> -p 8000:8000 -v /var/run/docker.sock:/var/run/docker.sock nuclio-fusionizer-server
+# Usage: docker run -e ADDRESS=<internal-address> -p 8000:8000 -v /var/run/docker.sock:/var/run/docker.sock nuclio-fusionizer
 FROM python:3.12
 
 # Set working directory in container to /app

@@ -11,3 +11,5 @@ def handler(context, event, requests_session):
     while actual < target:
         response = requests_session.post(url, headers=headers, json=data)
         actual = int(response.text)
+
+    return actual

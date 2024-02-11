@@ -16,7 +16,7 @@ spec:
         - name: docker-sock
           mountPath: /var/run/docker.sock
         - name: config
-          mountPath: /app/config.json
+          mountPath: /etc/nuclio-fusionizer
       env:
         - name: ADDRESS
           valueFrom:
@@ -24,6 +24,8 @@ spec:
               fieldPath: status.podIP
         - name: PLATFORM
           value: "kube"
+        - name: CONFIG
+          value: "/etc/nuclio-fusionizer/config.json"
   volumes:
     - name: docker-sock
       hostPath:

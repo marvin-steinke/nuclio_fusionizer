@@ -1,13 +1,51 @@
 #!/bin/bash
 
-source ../tests/lib
+while true; do
+    POD_NAME="nuclio-fusionizer"
+    port_forward_process=$(ps aux | grep "minikube kubectl -- port-forward -n nuclio")
+    if echo "$port_forward_process" | grep -q "$POD_NAME"; then
+        break
+    fi
+    sleep 5
+done
+
+while ! curl -s -X GET http://localhost:8000 >/dev/null 2>&1; do
+    sleep 3
+done
+
+function deploy_task() {
+    cd $1
+    zip $1.zip -r . >/dev/null 2>&1
+    mv $1.zip ..
+    cd ..
+    local status_code=$(
+        curl -X PUT http://localhost:8000/$1 \
+            -H "Content-Type: multipart/form-data" \
+            -F "zip_file=@$1.zip" \
+            -o /dev/null \
+            -s -w "%{http_code}"
+    )
+    if [ ! "$status_code" -eq 200 ]; then
+        exit 1
+    fi
+}
 
 deploy_task "entrytask"
-echo ""
 deploy_task "additiontask"
 
-wait_until "entrytask" "fused"
+while true; do
+    status_code=$(
+        curl http://localhost:8000/entrytask \
+            -o /dev/null \
+            -s -w "%{http_code}"
+    )
+    if [ "$status_code" -eq 200 ]; then
+        response=$(curl -s http://localhost:8000/entrytask)
+        ! echo "$response" | grep -q "Currently deployed with other Tasks: None" && break
+    fi
+    sleep 5
+done
 
-curl -s -X POST http://localhost:8000/entrytask \
+time curl -s -X POST http://localhost:8000/entrytask \
     -H "Content-Type: application/json" \
     -d '{"value": 1000}'
