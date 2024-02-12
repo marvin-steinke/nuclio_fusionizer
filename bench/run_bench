@@ -45,7 +45,7 @@ while true; do
 done
 
 echo "latency,value" >results.csv
-for value in $(seq $((10 ** 8)) $((10 ** 8)) $((10 ** 10))); do
+for value in $(seq $((10 ** 2)) $((10 ** 2)) $((10 ** 4))); do
     start_time=$(date +%s%3N)
     curl -s -X POST http://localhost:8000/entrytask -H "Content-Type: application/json" -d "{\"value\": $value}"
     end_time=$(date +%s%3N)
